@@ -1,6 +1,6 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-part 'launchpool_repository_impl.g.dart';
+part 'launchpool_repository.g.dart';
 
 @riverpod
 LaunchpoolRepository launchpoolRepository(LaunchpoolRepositoryRef ref) {
