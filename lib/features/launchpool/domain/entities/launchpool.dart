@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:launch_puller/core/enums/exchange_type.dart';
 
 class Launchpool extends Equatable {
   const Launchpool({

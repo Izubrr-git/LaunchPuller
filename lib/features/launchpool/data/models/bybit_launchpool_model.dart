@@ -1,6 +1,59 @@
-import '../../../../core/enums/exchange_type.dart';
-import '../../domain/entities/launchpool.dart';
+import 'package:launch_puller/core/enums/exchange_type.dart';
+import 'package:launch_puller/features/launchpool/domain/entities/launchpool.dart';
 
+class BybitApiResponse<T> {
+  const BybitApiResponse({
+    required this.retCode,
+    required this.retMsg,
+    required this.result,
+    this.time,
+  });
+
+  final int retCode;
+  final String retMsg;
+  final T? result;
+  final int? time;
+
+  factory BybitApiResponse.fromJson(
+      Map<String, dynamic> json,
+      T Function(Map<String, dynamic>) fromJsonT,
+      ) {
+    return BybitApiResponse<T>(
+      retCode: json['retCode'] as int,
+      retMsg: json['retMsg'] as String,
+      result: json['result'] != null
+          ? fromJsonT(json['result'] as Map<String, dynamic>)
+          : null,
+      time: json['time'] as int?,
+    );
+  }
+
+  bool get isSuccess => retCode == 0;
+
+  String get errorMessage => retMsg.isNotEmpty ? retMsg : 'Неизвестная ошибка';
+}
+
+class BybitEarnResponse {
+  const BybitEarnResponse({
+    required this.list,
+    this.nextPageCursor,
+  });
+
+  final List<BybitLaunchpoolModel> list;
+  final String? nextPageCursor;
+
+  factory BybitEarnResponse.fromJson(Map<String, dynamic> json) {
+    final List<dynamic> listJson = json['list'] ?? [];
+    return BybitEarnResponse(
+      list: listJson
+          .map((item) => BybitLaunchpoolModel.fromJson(item as Map<String, dynamic>))
+          .toList(),
+      nextPageCursor: json['nextPageCursor'] as String?,
+    );
+  }
+}
+
+// Расширенная модель для Bybit Launchpool
 class BybitLaunchpoolModel {
   const BybitLaunchpoolModel({
     required this.productId,
@@ -17,6 +70,13 @@ class BybitLaunchpoolModel {
     this.minAmount,
     this.maxAmount,
     this.totalAmount,
+    this.userStaked,
+    this.userRewards,
+    this.poolLimit,
+    this.currentStaked,
+    this.rewardTokenSymbol,
+    this.stakingPeriod,
+    this.distributionType,
   });
 
   final String productId;
@@ -33,23 +93,37 @@ class BybitLaunchpoolModel {
   final String? minAmount;
   final String? maxAmount;
   final String? totalAmount;
+  final String? userStaked;
+  final String? userRewards;
+  final String? poolLimit;
+  final String? currentStaked;
+  final String? rewardTokenSymbol;
+  final String? stakingPeriod;
+  final String? distributionType;
 
   factory BybitLaunchpoolModel.fromJson(Map<String, dynamic> json) {
     return BybitLaunchpoolModel(
-      productId: json['productId'] as String,
-      productName: json['productName'] as String,
-      productSymbol: json['productSymbol'] as String,
-      currency: json['currency'] as String,
-      stakingCurrency: json['stakingCurrency'] as String,
-      startTime: json['startTime'] as String,
-      endTime: json['endTime'] as String,
-      apy: json['apy'] as String,
-      status: json['status'] as String,
+      productId: json['productId'] as String? ?? '',
+      productName: json['productName'] as String? ?? '',
+      productSymbol: json['productSymbol'] as String? ?? '',
+      currency: json['currency'] as String? ?? '',
+      stakingCurrency: json['stakingCurrency'] as String? ?? '',
+      startTime: json['startTime'] as String? ?? '0',
+      endTime: json['endTime'] as String? ?? '0',
+      apy: json['apy'] as String? ?? '0',
+      status: json['status'] as String? ?? 'ENDED',
       description: json['description'] as String?,
       logoUrl: json['logoUrl'] as String?,
       minAmount: json['minAmount'] as String?,
       maxAmount: json['maxAmount'] as String?,
       totalAmount: json['totalAmount'] as String?,
+      userStaked: json['userStaked'] as String?,
+      userRewards: json['userRewards'] as String?,
+      poolLimit: json['poolLimit'] as String?,
+      currentStaked: json['currentStaked'] as String?,
+      rewardTokenSymbol: json['rewardTokenSymbol'] as String?,
+      stakingPeriod: json['stakingPeriod'] as String?,
+      distributionType: json['distributionType'] as String?,
     );
   }
 
@@ -58,13 +132,13 @@ class BybitLaunchpoolModel {
       id: productId,
       name: productName,
       symbol: productSymbol,
-      projectToken: currency,
-      stakingTokens: [stakingCurrency],
+      projectToken: rewardTokenSymbol ?? currency,
+      stakingTokens: stakingCurrency.split(',').map((e) => e.trim()).toList(),
       startTime: DateTime.fromMillisecondsSinceEpoch(
-        int.parse(startTime),
+        int.tryParse(startTime) ?? 0,
       ),
       endTime: DateTime.fromMillisecondsSinceEpoch(
-        int.parse(endTime),
+        int.tryParse(endTime) ?? 0,
       ),
       totalReward: totalAmount ?? '0',
       apy: double.tryParse(apy) ?? 0.0,
@@ -78,15 +152,18 @@ class BybitLaunchpoolModel {
   }
 
   LaunchpoolStatus _mapStatus(String status) {
-    switch (status.toLowerCase()) {
-      case 'active':
-      case 'ongoing':
+    switch (status.toUpperCase()) {
+      case 'ACTIVE':
+      case 'ONGOING':
+      case 'LIVE':
         return LaunchpoolStatus.active;
-      case 'upcoming':
-      case 'pending':
+      case 'UPCOMING':
+      case 'PENDING':
+      case 'PRELAUNCH':
         return LaunchpoolStatus.upcoming;
-      case 'ended':
-      case 'completed':
+      case 'ENDED':
+      case 'COMPLETED':
+      case 'FINISHED':
         return LaunchpoolStatus.ended;
       default:
         return LaunchpoolStatus.ended;
