@@ -1,6 +1,6 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:launch_puller/core/utils/api_client.dart';
-import 'package:launch_puller/features/launchpool/data/datasources/bybit_datasource.dart';
+import 'package:launch_puller/features/launchpool/data/datasources/bybit/bybit_datasource.dart';
 import 'package:launch_puller/features/launchpool/data/repositories/launchpool_repository.dart';
 import 'package:launch_puller/features/launchpool/domain/repositories/launchpool_repository.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -47,8 +47,8 @@ CacheManager cacheManager(CacheManagerRef ref) {
 
 /// Провайдер для Bybit DataSource
 @riverpod
-BybitRealDataSource bybitRealDataSource(BybitRealDataSourceRef ref) {
-  return BybitRealDataSource(
+BybitDataSource bybitRealDataSource(BybitDataSourceRef ref) {
+  return BybitDataSource(
     apiClient: ref.watch(apiClientProvider),
     cacheManager: ref.watch(cacheManagerProvider),
   );
@@ -56,10 +56,10 @@ BybitRealDataSource bybitRealDataSource(BybitRealDataSourceRef ref) {
 
 /// Провайдер для аутентифицированного Bybit DataSource
 @riverpod
-BybitRealDataSource authenticatedBybitDataSource(AuthenticatedBybitDataSourceRef ref) {
+BybitDataSource authenticatedBybitDataSource(AuthenticatedBybitDataSourceRef ref) {
   final authState = ref.watch(bybitAuthProvider).value;
 
-  return BybitRealDataSource(
+  return BybitDataSource(
     apiClient: ref.watch(apiClientProvider),
     cacheManager: ref.watch(cacheManagerProvider),
     isTestnet: authState?.isTestnet ?? false,
@@ -74,7 +74,7 @@ BybitRealDataSource authenticatedBybitDataSource(AuthenticatedBybitDataSourceRef
 /// Основной провайдер репозитория Launchpool
 @riverpod
 LaunchpoolRepository launchpoolRepository(LaunchpoolRepositoryRef ref) {
-  return LaunchpoolRepositoryReal(
+  return LaunchpoolRepository(
     bybitDataSource: ref.watch(authenticatedBybitDataSourceProvider),
     authState: ref.watch(bybitAuthProvider),
   );
