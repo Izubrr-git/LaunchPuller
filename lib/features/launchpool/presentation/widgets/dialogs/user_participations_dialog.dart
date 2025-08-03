@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:launch_puller/core/enums/launchpool_status.dart';
+import 'package:launch_puller/features/launchpool/domain/entities/user_participation.dart';
 import '../../providers/launchpool_provider.dart';
 import '../../../../../../core/utils/data_utils.dart';
 import '../common/loading_states.dart';

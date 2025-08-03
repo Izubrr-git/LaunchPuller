@@ -1,5 +1,5 @@
+import 'dart:async';
 import 'dart:convert';
-import 'dart:nativewrappers/_internal/vm/lib/async_patch.dart';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/animation.dart';
 import 'package:http/http.dart' as http;

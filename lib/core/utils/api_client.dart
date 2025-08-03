@@ -1,62 +1,61 @@
 import 'dart:convert';
+
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:http/http.dart' as http;
-import 'package:launch_puller/core/constants/api_constants.dart';
-import 'package:launch_puller/core/errors/exchange_exceptions.dart';
+
+part 'api_client.g.dart';
+
+@riverpod
+ApiClient apiClient(ApiClientRef ref) {
+  return ApiClient();
+}
 
 class ApiClient {
   final http.Client _client = http.Client();
 
   Future<Map<String, dynamic>> get({
     required String url,
+    Map<String, String>? queryParams,
     Map<String, String>? headers,
     Duration? timeout,
   }) async {
-    try {
-      final response = await _client
-          .get(
-        Uri.parse(url),
-        headers: {
-          ...ApiConstants.defaultHeaders,
-          ...?headers,
-        },
-      )
-          .timeout(timeout ?? ApiConstants.timeout);
+    final uri = queryParams != null && queryParams.isNotEmpty
+        ? Uri.parse(url).replace(queryParameters: queryParams)
+        : Uri.parse(url);
 
-      return _handleResponse(response);
-    } catch (e) {
-      throw NetworkException('Ошибка сети: $e');
-    }
+    final response = await _client
+        .get(
+      uri,
+      headers: headers ?? {'Content-Type': 'application/json'},
+    )
+        .timeout(timeout ?? const Duration(seconds: 30));
+
+    return _handleResponse(response);
+  }
+
+  Future<Map<String, dynamic>> post({
+    required String url,
+    Map<String, String>? headers,
+    String? body,
+    Duration? timeout,
+  }) async {
+    final response = await _client
+        .post(
+      Uri.parse(url),
+      headers: headers ?? {'Content-Type': 'application/json'},
+      body: body,
+    )
+        .timeout(timeout ?? const Duration(seconds: 30));
+
+    return _handleResponse(response);
   }
 
   Map<String, dynamic> _handleResponse(http.Response response) {
-    switch (response.statusCode) {
-      case 200:
-        try {
-          return json.decode(response.body) as Map<String, dynamic>;
-        } catch (e) {
-          throw ParseException('Ошибка парсинга ответа');
-        }
-      case 429:
-        throw RateLimitException();
-      case >= 400 && < 500:
-        throw ApiException(
-          'Ошибка клиента: ${response.statusCode}',
-          response.statusCode,
-        );
-      case >= 500:
-        throw ApiException(
-          'Ошибка сервера: ${response.statusCode}',
-          response.statusCode,
-        );
-      default:
-        throw ApiException(
-          'Неизвестная ошибка: ${response.statusCode}',
-          response.statusCode,
-        );
+    if (response.statusCode == 200) {
+      return json.decode(response.body) as Map<String, dynamic>;
     }
+    throw Exception('HTTP ${response.statusCode}: ${response.body}');
   }
 
-  void dispose() {
-    _client.close();
-  }
+  void dispose() => _client.close();
 }
