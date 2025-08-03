@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:launch_puller/core/enums/exchange_type.dart';
 import 'package:launch_puller/features/launchpool/domain/entities/launchpool.dart';
-import 'package:launch_puller/features/launchpool/presentation/widgets/common_widgets.dart';
+import 'package:launch_puller/features/launchpool/presentation/widgets/common/common_widgets.dart';
+import 'package:launch_puller/features/launchpool/presentation/widgets/common/exchange_logo.dart';
 
 class ExchangeFilter extends ConsumerWidget {
   const ExchangeFilter({super.key});

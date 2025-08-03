@@ -1,3 +1,5 @@
+import 'package:launch_puller/core/enums/launchpool_status.dart';
+
 import '../../../../../../core/enums/exchange_type.dart';
 import '../../../domain/entities/launchpool.dart';
 

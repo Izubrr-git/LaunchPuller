@@ -54,7 +54,7 @@ class BybitDataSource implements ExchangeDataSource {
       };
 
       final response = await apiClient.get(
-        url: '$baseUrl${ApiConstants.earnProducts}',
+        url: '$baseUrl${ApiConstants.bybitEarnProducts}',
         queryParams: queryParams,
         headers: _buildPublicHeaders(),
       );
@@ -125,13 +125,13 @@ class BybitDataSource implements ExchangeDataSource {
       };
 
       final headers = await authService.buildAuthHeaders(
-        endpoint: ApiConstants.earnRecord,
+        endpoint: ApiConstants.bybitEarnRecord,
         method: 'GET',
         queryParams: queryParams,
       );
 
       final response = await apiClient.get(
-        url: '${credentials.baseUrl}${ApiConstants.earnRecord}',
+        url: '${credentials.baseUrl}${ApiConstants.bybitEarnRecord}',
         queryParams: queryParams,
         headers: headers,
       );
@@ -172,13 +172,13 @@ class BybitDataSource implements ExchangeDataSource {
       final bodyString = jsonEncode(body);
 
       final headers = await authService.buildAuthHeaders(
-        endpoint: ApiConstants.earnSubscribe,
+        endpoint: ApiConstants.bybitEarnSubscribe,
         method: 'POST',
         body: bodyString,
       );
 
       final response = await apiClient.post(
-        url: '${credentials.baseUrl}${ApiConstants.earnSubscribe}',
+        url: '${credentials.baseUrl}${ApiConstants.bybitEarnSubscribe}',
         headers: headers,
         body: bodyString,
       );
@@ -219,13 +219,13 @@ class BybitDataSource implements ExchangeDataSource {
       final bodyString = jsonEncode(body);
 
       final headers = await authService.buildAuthHeaders(
-        endpoint: ApiConstants.earnRedeem,
+        endpoint: ApiConstants.bybitEarnRedeem,
         method: 'POST',
         body: bodyString,
       );
 
       final response = await apiClient.post(
-        url: '${credentials.baseUrl}${ApiConstants.earnRedeem}',
+        url: '${credentials.baseUrl}${ApiConstants.bybitEarnRedeem}',
         headers: headers,
         body: bodyString,
       );

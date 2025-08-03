@@ -1,4 +1,5 @@
 import 'package:launch_puller/core/enums/exchange_type.dart';
+import 'package:launch_puller/core/enums/launchpool_status.dart';
 import 'package:launch_puller/features/launchpool/domain/entities/launchpool.dart';
 
 class BybitApiResponse<T> {

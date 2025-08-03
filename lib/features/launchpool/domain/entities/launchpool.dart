@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'package:launch_puller/core/enums/exchange_type.dart';
+import 'package:launch_puller/core/enums/launchpool_status.dart';
 
 class Launchpool extends Equatable {
   const Launchpool({
@@ -57,13 +58,4 @@ class Launchpool extends Equatable {
     status,
     exchange,
   ];
-}
-
-enum LaunchpoolStatus {
-  upcoming('Скоро'),
-  active('Активный'),
-  ended('Завершен');
-
-  const LaunchpoolStatus(this.displayName);
-  final String displayName;
 }

@@ -1,8 +1,11 @@
-import 'package:launch_puller/core/enums/exchange_type.dart';
-import 'package:launch_puller/features/launchpool/domain/entities/launchpool.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import '../../domain/entities/launchpool.dart';
+import '../../domain/entities/user_participation.dart';
+import '../../data/repositories/launchpool_repository_impl.dart';
+import '../../../../../core/enums/exchange_type.dart';
+import '../../../../../core/enums/launchpool_status.dart';
 
-part '../pages/launchpool_provider.g.dart';
+part 'launchpool_provider.g.dart';
 
 @riverpod
 class LaunchpoolState extends _$LaunchpoolState {
@@ -46,6 +49,18 @@ Future<List<Launchpool>> filteredLaunchpools(FilteredLaunchpoolsRef ref) async {
   );
 }
 
+@riverpod
+Future<List<UserParticipation>> userParticipations(UserParticipationsRef ref) async {
+  final repository = ref.watch(launchpoolRepositoryProvider);
+  return repository.getUserParticipations();
+}
+
+@riverpod
+Future<Launchpool> launchpoolDetails(LaunchpoolDetailsRef ref, String poolId, ExchangeType exchange) async {
+  final repository = ref.watch(launchpoolRepositoryProvider);
+  return repository.getLaunchpoolById(poolId, exchange);
+}
+
 class LaunchpoolFilter {
   const LaunchpoolFilter({
     this.selectedExchange,
@@ -68,4 +83,22 @@ class LaunchpoolFilter {
       searchQuery: searchQuery ?? this.searchQuery,
     );
   }
+
+  bool get hasActiveFilters {
+    return selectedExchange != null ||
+        selectedStatus != null ||
+        searchQuery.isNotEmpty;
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is LaunchpoolFilter &&
+        other.selectedExchange == selectedExchange &&
+        other.selectedStatus == selectedStatus &&
+        other.searchQuery == searchQuery;
+  }
+
+  @override
+  int get hashCode => Object.hash(selectedExchange, selectedStatus, searchQuery);
 }
