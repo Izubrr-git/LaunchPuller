@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:launch_puller/features/launchpool/domain/entities/launchpool.dart';
-import 'package:launch_puller/features/launchpool/presentation/widgets/launchpool_card.dart';
+import 'package:launch_puller/features/launchpool/presentation/widgets/cards/launchpool_card.dart';
 
 class ResponsiveLayout extends StatelessWidget {
   const ResponsiveLayout({

@@ -4,7 +4,7 @@ import 'package:launch_puller/features/launchpool/domain/entities/launchpool.dar
 import 'package:launch_puller/features/launchpool/presentation/widgets/common/exchange_logo.dart';
 import 'package:launch_puller/features/launchpool/presentation/widgets/common/status_indicators.dart';
 
-import 'dialogs/launchpool_details_dialog.dart';
+import '../dialogs/launchpool_details_dialog.dart';
 
 class LaunchpoolCard extends StatelessWidget {
   const LaunchpoolCard({
