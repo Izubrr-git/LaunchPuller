@@ -2,11 +2,11 @@ import 'package:launch_puller/core/enums/exchange_type.dart';
 import 'package:launch_puller/core/enums/launchpool_status.dart';
 import 'package:launch_puller/core/errors/exchange_exceptions.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import '../../domain/repositories/launchpool_repository.dart';
-import '../../domain/entities/launchpool.dart';
-import '../../domain/entities/user_participation.dart';
-import '../datasources/bybit/bybit_datasource.dart';
-import '../datasources/bybit/bybit_api_models.dart';
+import 'package:launch_puller/features/launchpool/domain/repositories/launchpool_repository.dart';
+import 'package:launch_puller/features/launchpool/domain/entities/launchpool.dart';
+import 'package:launch_puller/features/launchpool/domain/entities/user_participation.dart';
+import 'package:launch_puller/features/launchpool/data/datasources/bybit/bybit_datasource.dart';
+import 'package:launch_puller/features/launchpool/data/datasources/bybit/bybit_api_models.dart';
 
 part 'launchpool_repository_impl.g.dart';
 

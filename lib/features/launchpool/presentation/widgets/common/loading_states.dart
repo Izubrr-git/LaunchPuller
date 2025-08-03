@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../../../../core/errors/exchange_exceptions.dart';
+import 'package:launch_puller/core/errors/exchange_exceptions.dart';
 
 /// Состояние загрузки
 class LoadingState extends StatelessWidget {

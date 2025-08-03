@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:launch_puller/core/enums/exchange_type.dart';
-import 'package:launch_puller/features/launchpool/presentation/widgets/common/common_widgets.dart';
-import '../../providers/auth_provider.dart';
-import '../common/exchange_logo.dart';
+import 'package:launch_puller/features/launchpool/presentation/providers/auth_provider.dart';
+import 'package:launch_puller/features/launchpool/presentation/widgets/common/exchange_logo.dart';
 
 class AuthSetupDialog extends ConsumerStatefulWidget {
   const AuthSetupDialog({super.key});
@@ -47,11 +46,11 @@ class _AuthSetupDialogState extends ConsumerState<AuthSetupDialog> {
     final theme = Theme.of(context);
 
     return AlertDialog(
-      title: Row(
+      title: const Row(
         children: [
           ExchangeLogo(exchange: ExchangeType.bybit),
-          const SizedBox(width: 12),
-          const Text('Настройка Bybit API'),
+          SizedBox(width: 12),
+          Text('Настройка Bybit API'),
         ],
       ),
       content: SizedBox(

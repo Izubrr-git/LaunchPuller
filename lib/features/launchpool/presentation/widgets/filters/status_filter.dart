@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../../../core/enums/launchpool_status.dart';
-import '../../providers/launchpool_provider.dart';
-import '../common/status_indicators.dart';
+import 'package:launch_puller/core/enums/launchpool_status.dart';
+import 'package:launch_puller/features/launchpool/presentation/providers/launchpool_provider.dart';
+import 'package:launch_puller/features/launchpool/presentation/widgets/common/status_indicators.dart';
 
 class StatusFilter extends ConsumerWidget {
   const StatusFilter({super.key});

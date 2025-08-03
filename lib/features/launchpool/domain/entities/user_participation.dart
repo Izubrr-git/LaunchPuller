@@ -1,4 +1,4 @@
-import '../../../../../core/enums/exchange_type.dart';
+import 'package:launch_puller/core/enums/exchange_type.dart';
 
 /// Сущность участия пользователя в Launchpool
 class UserParticipation {

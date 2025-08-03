@@ -1,8 +1,7 @@
 import 'package:launch_puller/core/enums/exchange_type.dart';
 import 'package:launch_puller/features/launchpool/data/repositories/launchpool_repository_impl.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import '../repositories/launchpool_repository.dart';
-import '../entities/user_participation.dart';
+import 'package:launch_puller/features/launchpool/domain/repositories/launchpool_repository.dart';
 
 part 'participate_in_pool.g.dart';
 

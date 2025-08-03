@@ -1,8 +1,8 @@
 import 'package:launch_puller/core/enums/launchpool_status.dart';
 import 'package:launch_puller/features/launchpool/domain/entities/user_participation.dart';
 
-import '../../../../core/enums/exchange_type.dart';
-import '../entities/launchpool.dart';
+import 'package:launch_puller/core/enums/exchange_type.dart';
+import 'package:launch_puller/features/launchpool/domain/entities/launchpool.dart';
 
 abstract class LaunchpoolRepository {
   Future<List<Launchpool>> getLaunchpools({

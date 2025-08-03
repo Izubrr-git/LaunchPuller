@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:launch_puller/core/enums/launchpool_status.dart';
 import 'package:launch_puller/features/launchpool/domain/entities/launchpool.dart';
-import 'package:launch_puller/features/launchpool/presentation/widgets/common/common_widgets.dart';
 import 'package:launch_puller/features/launchpool/presentation/widgets/common/exchange_logo.dart';
 import 'package:launch_puller/features/launchpool/presentation/widgets/common/status_indicators.dart';
+
+import 'dialogs/launchpool_details_dialog.dart';
 
 class LaunchpoolCard extends StatelessWidget {
   const LaunchpoolCard({
@@ -443,6 +444,7 @@ class _StakingLimits extends StatelessWidget {
                       ),
                     ),
                     Text(
+                      // TODO: Проверить нужно ли убрать преобразование в String
                       '${launchpool.minStakeAmount!.toStringAsFixed(2)}',
                       style: theme.textTheme.bodyMedium,
                     ),
@@ -464,6 +466,7 @@ class _StakingLimits extends StatelessWidget {
                       ),
                     ),
                     Text(
+                      // TODO: Проверить нужно ли убрать преобразование в String
                       '${launchpool.maxStakeAmount!.toStringAsFixed(2)}',
                       style: theme.textTheme.bodyMedium,
                     ),

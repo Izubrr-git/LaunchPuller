@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../../../../core/enums/launchpool_status.dart';
+import 'package:launch_puller/core/enums/launchpool_status.dart';
 
 /// Индикатор статуса Launchpool
 class StatusIndicator extends StatelessWidget {

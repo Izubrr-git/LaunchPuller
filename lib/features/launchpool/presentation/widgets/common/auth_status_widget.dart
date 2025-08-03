@@ -2,10 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:launch_puller/core/enums/exchange_type.dart';
 import 'package:launch_puller/features/launchpool/data/datasources/bybit/bybit_auth_service.dart';
-import 'package:launch_puller/features/launchpool/presentation/widgets/common/common_widgets.dart';
-import '../../providers/auth_provider.dart';
-import '../dialogs/auth_setup_dialog.dart';
-import '../dialogs/user_participations_dialog.dart';
+import 'package:launch_puller/features/launchpool/presentation/providers/auth_provider.dart';
+import 'package:launch_puller/features/launchpool/presentation/widgets/dialogs/auth_setup_dialog.dart';
+import 'package:launch_puller/features/launchpool/presentation/widgets/dialogs/user_participations_dialog.dart';
 import 'exchange_logo.dart';
 
 class AuthStatusWidget extends ConsumerWidget {
@@ -176,7 +175,7 @@ class AuthenticatedView extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  ExchangeLogo(exchange: ExchangeType.bybit, size: 16),
+                  const ExchangeLogo(exchange: ExchangeType.bybit, size: 16),
                   const SizedBox(width: 8),
                   Text(
                     'Bybit API',
@@ -216,9 +215,9 @@ class AuthenticatedView extends StatelessWidget {
         const PopupMenuDivider(),
 
         // Мои участия
-        PopupMenuItem(
+        const PopupMenuItem(
           value: 'my_participations',
-          child: const Row(
+          child: Row(
             children: [
               Icon(Icons.history),
               SizedBox(width: 12),
@@ -246,9 +245,9 @@ class AuthenticatedView extends StatelessWidget {
         const PopupMenuDivider(),
 
         // Изменить ключи
-        PopupMenuItem(
+        const PopupMenuItem(
           value: 'edit_credentials',
-          child: const Row(
+          child: Row(
             children: [
               Icon(Icons.edit),
               SizedBox(width: 12),
@@ -258,9 +257,9 @@ class AuthenticatedView extends StatelessWidget {
         ),
 
         // Выйти
-        PopupMenuItem(
+        const PopupMenuItem(
           value: 'logout',
-          child: const Row(
+          child: Row(
             children: [
               Icon(Icons.logout, color: Colors.red),
               SizedBox(width: 12),
@@ -407,7 +406,7 @@ class AuthBottomSheet extends ConsumerWidget {
           // Заголовок
           Row(
             children: [
-              ExchangeLogo(exchange: ExchangeType.bybit),
+              const ExchangeLogo(exchange: ExchangeType.bybit),
               const SizedBox(width: 12),
               Text(
                 'Bybit Account',

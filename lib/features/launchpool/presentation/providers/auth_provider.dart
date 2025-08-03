@@ -1,5 +1,5 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import '../../data/datasources/bybit/bybit_auth_service.dart';
+import 'package:launch_puller/features/launchpool/data/datasources/bybit/bybit_auth_service.dart';
 
 part 'auth_provider.g.dart';
 

@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../providers/launchpool_provider.dart';
-import '../providers/auth_provider.dart';
-import '../widgets/common/loading_states.dart';
-import '../widgets/common/responsive_layout.dart';
-import '../widgets/dialogs/auth_setup_dialog.dart';
-import '../widgets/filters/exchange_filter.dart';
-import '../widgets/filters/status_filter.dart' hide StatusFilter;
-import '../widgets/common/auth_status_widget.dart';
+import 'package:launch_puller/features/launchpool/presentation/providers/launchpool_provider.dart';
+import 'package:launch_puller/features/launchpool/presentation/providers/auth_provider.dart';
+import 'package:launch_puller/features/launchpool/presentation/widgets/common/loading_states.dart';
+import 'package:launch_puller/features/launchpool/presentation/widgets/common/responsive_layout.dart';
+import 'package:launch_puller/features/launchpool/presentation/widgets/dialogs/auth_setup_dialog.dart';
+import 'package:launch_puller/features/launchpool/presentation/widgets/filters/exchange_filter.dart';
+import 'package:launch_puller/features/launchpool/presentation/widgets/filters/status_filter.dart';
+import 'package:launch_puller/features/launchpool/presentation/widgets/common/auth_status_widget.dart';
 
 class LaunchpoolPage extends ConsumerWidget {
   const LaunchpoolPage({super.key});
