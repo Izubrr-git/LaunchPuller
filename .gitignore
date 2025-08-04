@@ -25,6 +25,15 @@ migrate_working_dir/
 *.freezed.dart
 *.gr.dart
 
+# API keys and configs
+*.env
+.env*
+google-services.json
+GoogleService-Info.plist
+key.properties
+*.jks
+*.keystore
+
 # The .vscode folder contains launch configuration and tasks you configure in
 # VS Code which you may wish to be included in version control, so this line
 # is commented out by default.
