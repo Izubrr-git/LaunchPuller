@@ -20,7 +20,7 @@ dependencies:
   http: ^1.1.2
 
   # Security & Storage
-  flutter_secure_storage: ^9.0.0
+  flutter_secure_storage: ^10.0.0-beta.4
   shared_preferences: ^2.2.2
 
   # Cryptography
@@ -45,6 +45,9 @@ dev_dependencies:
 
   # Linting
   flutter_lints: ^3.0.0
+
+dependency_overrides:
+  web: any
 
 flutter:
   uses-material-design: true

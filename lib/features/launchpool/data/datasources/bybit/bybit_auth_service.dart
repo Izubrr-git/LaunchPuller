@@ -1,9 +1,9 @@
-import 'package:launch_puller/core/errors/exchange_exceptions.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../../../../core/services/secure_storage_service.dart';
-import '../../../../../core/utils/crypto_utils.dart';
-import '../../../../../core/constants/api_constants.dart';
+import 'package:flutter/foundation.dart';
+import 'package:launch_puller/core/security/secure_storage_service.dart';
+import 'package:launch_puller/core/utils/crypto_utils.dart';
+import 'package:launch_puller/core/constants/api_constants.dart';
 
 part 'bybit_auth_service.g.dart';
 
@@ -23,10 +23,29 @@ class BybitAuthService {
   static const String _apiSecretKey = 'bybit_api_secret';
   static const String _isTestnetKey = 'bybit_is_testnet';
 
-  Future<BybitCredentials?> getCredentials() async {
+  /// Получение credentials с проверкой сессии
+  Future<BybitCredentials?> getCredentials({
+    String? userPassword,
+    bool requireAuth = true,
+  }) async {
     try {
-      final apiKey = await secureStorage.read(_apiKeyKey);
-      final apiSecret = await secureStorage.read(_apiSecretKey);
+      // Проверка сессии для Web и Windows
+      if (requireAuth && (kIsWeb || defaultTargetPlatform == TargetPlatform.windows)) {
+        if (!await secureStorage.validateSessionToken()) {
+          debugPrint('🚨 Сессия недействительна');
+          return null;
+        }
+      }
+
+      final apiKey = await secureStorage.readSecure(
+        key: _apiKeyKey,
+        userPassword: userPassword,
+      );
+
+      final apiSecret = await secureStorage.readSecure(
+        key: _apiSecretKey,
+        userPassword: userPassword,
+      );
 
       if (apiKey == null || apiSecret == null) {
         return null;
@@ -41,51 +60,89 @@ class BybitAuthService {
         isTestnet: isTestnet,
       );
     } catch (e) {
+      debugPrint('❌ Ошибка получения credentials: $e');
       return null;
     }
   }
 
-  Future<void> saveCredentials(BybitCredentials credentials) async {
+  /// Сохранение credentials с улучшенной безопасностью
+  Future<void> saveCredentials(
+      BybitCredentials credentials, {
+        String? userPassword,
+      }) async {
+    // Валидация ключей
     if (!CryptoUtils.isValidApiKey(credentials.apiKey) ||
         !CryptoUtils.isValidApiSecret(credentials.apiSecret)) {
-      throw const ApiException('Некорректные API ключи');
+      throw const SecurityException('Некорректные API ключи');
     }
 
-    await secureStorage.write(_apiKeyKey, credentials.apiKey);
-    await secureStorage.write(_apiSecretKey, credentials.apiSecret);
+    // Для Web обязательно требуем пароль
+    if (kIsWeb && userPassword == null) {
+      throw const SecurityException('Пароль обязателен для Web платформы');
+    }
 
+    // Безопасное сохранение с дополнительным шифрованием
+    await secureStorage.writeSecure(
+      key: _apiKeyKey,
+      value: credentials.apiKey,
+      userPassword: userPassword,
+    );
+
+    await secureStorage.writeSecure(
+      key: _apiSecretKey,
+      value: credentials.apiSecret,
+      userPassword: userPassword,
+    );
+
+    // Сохранение флага testnet в обычные настройки
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_isTestnetKey, credentials.isTestnet);
+
+    // Создание новой сессии
+    await secureStorage.createSessionToken();
+
+    debugPrint('✅ API ключи безопасно сохранены');
   }
 
+  /// Очистка credentials
   Future<void> clearCredentials() async {
     await secureStorage.delete(_apiKeyKey);
     await secureStorage.delete(_apiSecretKey);
+    await secureStorage.invalidateSession();
 
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_isTestnetKey);
+
+    debugPrint('🗑️ API ключи удалены');
   }
 
+  /// Переключение testnet
   Future<void> toggleTestnet() async {
     final prefs = await SharedPreferences.getInstance();
     final currentTestnet = prefs.getBool(_isTestnetKey) ?? false;
     await prefs.setBool(_isTestnetKey, !currentTestnet);
+
+    debugPrint('🔄 Testnet переключен: ${!currentTestnet}');
   }
 
-  String get baseUrl {
-    // Нужно получить текущее состояние isTestnet
-    return ApiConstants.bybitMainnet; // Упрощено для примера
+  /// Получение базового URL
+  Future<String> getBaseUrl() async {
+    final prefs = await SharedPreferences.getInstance();
+    final isTestnet = prefs.getBool(_isTestnetKey) ?? false;
+    return isTestnet ? ApiConstants.bybitTestnet : ApiConstants.bybitMainnet;
   }
 
+  /// Построение заголовков аутентификации
   Future<Map<String, String>> buildAuthHeaders({
     required String endpoint,
     required String method,
     Map<String, String>? queryParams,
     String? body,
+    String? userPassword,
   }) async {
-    final credentials = await getCredentials();
+    final credentials = await getCredentials(userPassword: userPassword);
     if (credentials == null) {
-      throw const ApiException('Необходима аутентификация');
+      throw const SecurityException('Необходима аутентификация');
     }
 
     final timestamp = DateTime.now().millisecondsSinceEpoch.toString();
@@ -120,8 +177,40 @@ class BybitAuthService {
       'X-BAPI-SIGN': signature,
     };
   }
+
+  /// Проверка пароля (для Web)
+  static bool isPasswordRequired() {
+    return kIsWeb;
+  }
+
+  /// Оценка безопасности
+  Future<SecurityAssessment> assessSecurity() async {
+    return await secureStorage.assessSecurity();
+  }
+
+  /// Проверка силы пароля
+  static PasswordStrength checkPasswordStrength(String password) {
+    if (password.length < 8) return PasswordStrength.weak;
+
+    bool hasUpper = password.contains(RegExp(r'[A-Z]'));
+    bool hasLower = password.contains(RegExp(r'[a-z]'));
+    bool hasDigits = password.contains(RegExp(r'[0-9]'));
+    bool hasSpecial = password.contains(RegExp(r'[!@#$%^&*(),.?":{}|<>]'));
+
+    int score = 0;
+    if (hasUpper) score++;
+    if (hasLower) score++;
+    if (hasDigits) score++;
+    if (hasSpecial) score++;
+    if (password.length >= 12) score++;
+
+    if (score >= 4) return PasswordStrength.strong;
+    if (score >= 2) return PasswordStrength.medium;
+    return PasswordStrength.weak;
+  }
 }
 
+/// Модель credentials
 class BybitCredentials {
   const BybitCredentials({
     required this.apiKey,
@@ -148,4 +237,14 @@ class BybitCredentials {
   String get baseUrl {
     return isTestnet ? ApiConstants.bybitTestnet : ApiConstants.bybitMainnet;
   }
+}
+
+/// Сила пароля
+enum PasswordStrength {
+  weak('Слабый'),
+  medium('Средний'),
+  strong('Сильный');
+
+  const PasswordStrength(this.displayName);
+  final String displayName;
 }

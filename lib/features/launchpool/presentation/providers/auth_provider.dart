@@ -1,3 +1,4 @@
+import 'package:launch_puller/core/security/secure_storage_service.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:launch_puller/features/launchpool/data/datasources/bybit/bybit_auth_service.dart';
 
@@ -8,11 +9,12 @@ class AuthState extends _$AuthState {
   @override
   Future<AuthData> build() async {
     final authService = ref.watch(bybitAuthServiceProvider);
-    final credentials = await authService.getCredentials();
+    final credentials = await authService.getCredentials(requireAuth: false);
 
     return AuthData(
       isAuthenticated: credentials != null,
       credentials: credentials,
+      securityAssessment: await authService.assessSecurity(),
     );
   }
 
@@ -20,6 +22,7 @@ class AuthState extends _$AuthState {
     required String apiKey,
     required String apiSecret,
     required bool isTestnet,
+    String? userPassword,
   }) async {
     final authService = ref.read(bybitAuthServiceProvider);
     final credentials = BybitCredentials(
@@ -28,11 +31,16 @@ class AuthState extends _$AuthState {
       isTestnet: isTestnet,
     );
 
-    await authService.saveCredentials(credentials);
+    await authService.saveCredentials(
+      credentials,
+      userPassword: userPassword,
+    );
 
+    // Обновляем состояние
     state = AsyncValue.data(AuthData(
       isAuthenticated: true,
       credentials: credentials,
+      securityAssessment: await authService.assessSecurity(),
     ));
   }
 
@@ -40,28 +48,39 @@ class AuthState extends _$AuthState {
     final authService = ref.read(bybitAuthServiceProvider);
     await authService.clearCredentials();
 
-    state = const AsyncValue.data(AuthData(
+    state = AsyncValue.data(AuthData(
       isAuthenticated: false,
       credentials: null,
+      securityAssessment: await authService.assessSecurity(),
     ));
   }
 
   Future<void> toggleTestnet() async {
-    final currentState = state.value;
-    if (currentState?.credentials == null) return;
-
     final authService = ref.read(bybitAuthServiceProvider);
     await authService.toggleTestnet();
 
-    final newCredentials = currentState!.credentials!.copyWith(
-      isTestnet: !currentState.credentials!.isTestnet,
-    );
+    // Обновляем состояние
+    final currentState = state.value;
+    if (currentState?.credentials != null) {
+      final updatedCredentials = currentState!.credentials!.copyWith(
+        isTestnet: !currentState.credentials!.isTestnet,
+      );
 
-    await authService.saveCredentials(newCredentials);
+      state = AsyncValue.data(currentState.copyWith(
+        credentials: updatedCredentials,
+      ));
+    }
+  }
 
-    state = AsyncValue.data(AuthData(
-      isAuthenticated: true,
-      credentials: newCredentials,
+  Future<void> refreshSecurityAssessment() async {
+    final currentState = state.value;
+    if (currentState == null) return;
+
+    final authService = ref.read(bybitAuthServiceProvider);
+    final newAssessment = await authService.assessSecurity();
+
+    state = AsyncValue.data(currentState.copyWith(
+      securityAssessment: newAssessment,
     ));
   }
 }
@@ -70,18 +89,22 @@ class AuthData {
   const AuthData({
     required this.isAuthenticated,
     this.credentials,
+    required this.securityAssessment,
   });
 
   final bool isAuthenticated;
   final BybitCredentials? credentials;
+  final SecurityAssessment securityAssessment;
 
   AuthData copyWith({
     bool? isAuthenticated,
     BybitCredentials? credentials,
+    SecurityAssessment? securityAssessment,
   }) {
     return AuthData(
       isAuthenticated: isAuthenticated ?? this.isAuthenticated,
       credentials: credentials ?? this.credentials,
+      securityAssessment: securityAssessment ?? this.securityAssessment,
     );
   }
 }
