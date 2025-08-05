@@ -3,13 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:launch_puller/features/launchpool/presentation/providers/launchpool_provider.dart';
 import 'package:launch_puller/features/launchpool/presentation/providers/auth_provider.dart';
 import 'package:launch_puller/features/launchpool/presentation/widgets/common/loading_states.dart';
-import 'package:launch_puller/features/launchpool/presentation/widgets/common/network_status_indicator.dart';
 import 'package:launch_puller/features/launchpool/presentation/widgets/common/responsive_layout.dart';
 import 'package:launch_puller/features/launchpool/presentation/widgets/dialogs/auth_setup_dialog.dart';
 import 'package:launch_puller/features/launchpool/presentation/widgets/filters/exchange_filter.dart';
 import 'package:launch_puller/features/launchpool/presentation/widgets/filters/status_filter.dart';
 import 'package:launch_puller/features/launchpool/presentation/widgets/common/auth_status_widget.dart';
-import 'package:launch_puller/features/launchpool/presentation/widgets/common/exchange_menu_button.dart';
 
 class LaunchpoolPage extends ConsumerWidget {
   const LaunchpoolPage({super.key});
@@ -20,32 +18,30 @@ class LaunchpoolPage extends ConsumerWidget {
     final filter = ref.watch(launchpoolStateProvider);
 
     return Scaffold(
-      // appBar: AppBar(
-      //   leading: const ExchangeMenuButton(),
-      //   leadingWidth: 200,
-      //   title: const Text('Launch Pools'),
-      //   backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-      //   actions: const [
-      //     // Индикатор сети
-      //     NetworkStatusIndicator(),
-      //     SizedBox(width: 8),
-      //
-      //     // Аутентификация
-      //     AuthStatusWidget(),
-      //     SizedBox(width: 8),
-      //
-      //     // Обновление
-      //     // IconButton(
-      //     //   icon: const Icon(Icons.refresh),
-      //     //   onPressed: () {
-      //     //     ref.invalidate(filteredLaunchpoolsProvider);
-      //     //     // Очистка кэша при необходимости
-      //     //   },
-      //     //   tooltip: 'Обновить данные',
-      //     // ),
-      //     SizedBox(width: 8),
-      //   ],
-      // ),
+      appBar: AppBar(
+        title: const Text('Launchpools'),
+        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        actions: [
+          // Индикатор сети
+          const NetworkStatusIndicator(),
+          const SizedBox(width: 8),
+
+          // Аутентификация
+          const AuthStatusWidget(),
+          const SizedBox(width: 8),
+
+          // Обновление
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () {
+              ref.invalidate(filteredLaunchpoolsProvider);
+              // Очистка кэша при необходимости
+            },
+            tooltip: 'Обновить данные',
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
       body: Column(
         children: [
           // Информационная панель
@@ -131,14 +127,42 @@ class LaunchpoolPage extends ConsumerWidget {
           ),
         ],
       ),
-      // floatingActionButton: FloatingActionButton.extended(
-      //   onPressed: () {
-      //     ref.invalidate(filteredLaunchpoolsProvider);
-      //   },
-      //   label: const Text('Обновить'),
-      //   icon: const Icon(Icons.refresh),
-      // ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          ref.invalidate(filteredLaunchpoolsProvider);
+        },
+        label: const Text('Обновить'),
+        icon: const Icon(Icons.refresh),
+      ),
     );
+  }
+}
+
+class NetworkStatusIndicator extends StatelessWidget {
+  const NetworkStatusIndicator({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<bool>(
+      future: _checkNetworkStatus(),
+      builder: (context, snapshot) {
+        final isOnline = snapshot.data ?? true;
+
+        return Tooltip(
+          message: isOnline ? 'Онлайн' : 'Нет соединения',
+          child: Icon(
+            isOnline ? Icons.wifi : Icons.wifi_off,
+            color: isOnline ? Colors.green : Colors.red,
+            size: 20,
+          ),
+        );
+      },
+    );
+  }
+
+  Future<bool> _checkNetworkStatus() async {
+    // Упрощенная проверка статуса сети
+    return true; // В реальном приложении используйте connectivity_plus
   }
 }
 

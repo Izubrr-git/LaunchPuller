@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:launch_puller/features/launchpool/presentation/pages/launchpool_page.dart';
+import 'package:launch_puller/features/launchpool/presentation/pages/main_app_screen.dart';
 
 void main() {
   runApp(
@@ -37,7 +38,7 @@ class LaunchpoolApp extends StatelessWidget {
           centerTitle: true,
         ),
       ),
-      home: const LaunchpoolPage(),
+      home: const MainAppScreen(),
     );
   }
 }
