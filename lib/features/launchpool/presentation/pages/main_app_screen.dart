@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:launch_puller/core/enums/launchpool_status.dart';
 import 'package:launch_puller/features/launchpool/presentation/providers/launchpool_provider.dart';
 import 'package:launch_puller/features/launchpool/presentation/widgets/common/auth_status_widget.dart';
 import 'package:launch_puller/features/launchpool/presentation/widgets/common/exchange_menu_button.dart';
@@ -22,13 +21,7 @@ class MainAppScreen extends ConsumerWidget {
     return Scaffold(
       appBar: _buildAppBar(context, ref, currentMode),
       body: _buildBody(context, ref, currentMode),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          ref.invalidate(filteredLaunchpoolsProvider);
-        },
-        label: const Text('Обновить'),
-        icon: const Icon(Icons.refresh),
-      ),
+      floatingActionButton: _buildFAB(context, ref, currentMode),
     );
   }
 
@@ -37,7 +30,7 @@ class MainAppScreen extends ConsumerWidget {
       backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       elevation: 0,
       leading: const ExchangeMenuButton(),
-      leadingWidth: 200, // Увеличиваем ширину для помещения кнопки с текстом
+      leadingWidth: 200,
       title: Text(
         _getScreenTitle(currentMode),
         style: Theme.of(context).textTheme.titleLarge?.copyWith(
@@ -45,45 +38,18 @@ class MainAppScreen extends ConsumerWidget {
         ),
       ),
       actions: [
-        // Кнопка обновления данных
-        IconButton(
-          icon: const Icon(Icons.refresh),
-          onPressed: () => ref.invalidate(filteredLaunchpoolsProvider),
-          tooltip: 'Обновить данные',
-        ),
-
-        // Кнопка настроек
-        IconButton(
-          icon: const Icon(Icons.settings),
-          onPressed: () => _openSettings(context),
-          tooltip: 'Настройки',
-        ),
+        NetworkStatusIndicator(UniqueKey().toString()),
+        const SizedBox(width: 8),
 
         // Статус аутентификации
         const AuthStatusWidget(),
+        const SizedBox(width: 8),
 
+        // Кнопка настроек
+        const _SettingsButton(),
         const SizedBox(width: 8),
       ],
     );
-
-    // return AppBar(
-    //   leading: const ExchangeMenuButton(),
-    //   title: const Text('Launchpools'),
-    //   backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-    //   actions: [
-    //     // Индикатор сети
-    //      NetworkStatusIndicator(),
-    //      SizedBox(width: 8),
-    //
-    //     // Аутентификация
-    //      AuthStatusWidget(),
-    //      SizedBox(width: 8),
-    //
-    //     // Кнопка настроек
-    //     _SettingsButton(),
-    //      SizedBox(width: 8),
-    //   ],
-    // );
   }
 
   Widget _buildBody(BuildContext context, WidgetRef ref, ExchangeWorkMode currentMode) {
@@ -172,6 +138,16 @@ class MainAppScreen extends ConsumerWidget {
     );
   }
 
+  Widget _buildFAB(BuildContext context, WidgetRef ref, ExchangeWorkMode currentMode) {
+    return FloatingActionButton.extended(
+      onPressed: () {
+        ref.invalidate(filteredLaunchpoolsProvider);
+      },
+      label: const Text('Обновить'),
+      icon: const Icon(Icons.refresh),
+    );
+  }
+
   String _getScreenTitle(ExchangeWorkMode currentMode) {
     switch (currentMode) {
       case ExchangeWorkMode.launchpool:
@@ -184,87 +160,8 @@ class MainAppScreen extends ConsumerWidget {
         return 'Мой портфель';
     }
   }
-
-  Widget _buildPlaceholder(
-    BuildContext context, {
-    required IconData icon,
-    required String title,
-    required String subtitle,
-  }) {
-    final theme = Theme.of(context);
-
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 120,
-              height: 120,
-              decoration: BoxDecoration(
-                color: theme.colorScheme.primaryContainer.withOpacity(0.3),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, size: 60, color: theme.colorScheme.primary),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              title,
-              style: theme.textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: theme.colorScheme.primary,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              subtitle,
-              style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 32),
-            FilledButton.icon(
-              onPressed: () {
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(const SnackBar(content: Text('🔔 Вы получите уведомление когда функция будет готова')));
-              },
-              icon: const Icon(Icons.notifications_active),
-              label: const Text('Уведомить о готовности'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
-void _openSettings(BuildContext context) {
-  showDialog(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: const Row(children: [Icon(Icons.settings), SizedBox(width: 8), Text('Настройки')]),
-      content: const Text(
-        'Настройки приложения:\n\n'
-            '• Настройки уведомлений\n'
-            '• Темы оформления\n'
-            '• Языковые настройки\n'
-            '• Настройки безопасности\n'
-            '• API конфигурация',
-      ),
-      actions: [
-        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Закрыть')),
-        FilledButton(
-          onPressed: () {
-            Navigator.of(context).pop();
-            Navigator.of(context).pushNamed('/settings');
-          },
-          child: const Text('Открыть настройки'),
-        ),
-      ],
-    ),
-  );
-}
-/// Кнопка настроек в AppBar
+
 class _SettingsButton extends StatelessWidget {
   const _SettingsButton();
 
@@ -274,29 +171,7 @@ class _SettingsButton extends StatelessWidget {
   }
 
   void _openSettings(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Row(children: [Icon(Icons.settings), SizedBox(width: 8), Text('Настройки')]),
-        content: const Text(
-          'Настройки приложения:\n\n'
-          '• Настройки уведомлений\n'
-          '• Темы оформления\n'
-          '• Языковые настройки\n'
-          '• Настройки безопасности\n'
-          '• API конфигурация',
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Закрыть')),
-          FilledButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              Navigator.of(context).pushNamed('/settings');
-            },
-            child: const Text('Открыть настройки'),
-          ),
-        ],
-      ),
-    );
+    Navigator.of(context).pop();
+    Navigator.of(context).pushNamed('/settings');
   }
 }

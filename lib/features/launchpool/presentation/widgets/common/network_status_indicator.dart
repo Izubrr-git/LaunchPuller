@@ -5,12 +5,13 @@ import 'dart:async';
 import 'dart:io';
 
 class NetworkStatusIndicator extends StatefulWidget {
-  const NetworkStatusIndicator({
+  const NetworkStatusIndicator(String string, {
     super.key,
     this.checkInterval = const Duration(seconds: 30),
     this.testUrl = 'https://www.google.com',
     this.size = 20.0,
     this.showText = false,
+    this.instanceId,
   });
 
   /// Интервал проверки подключения
@@ -24,6 +25,8 @@ class NetworkStatusIndicator extends StatefulWidget {
 
   /// Показывать ли текст рядом с иконкой
   final bool showText;
+
+  final String? instanceId;
 
   @override
   State<NetworkStatusIndicator> createState() => _NetworkStatusIndicatorState();
