@@ -41,11 +41,9 @@ class MainAppScreen extends ConsumerWidget {
         NetworkStatusIndicator(UniqueKey().toString()),
         const SizedBox(width: 8),
 
-        // Статус аутентификации
         const AuthStatusWidget(),
         const SizedBox(width: 8),
 
-        // Кнопка настроек
         const _SettingsButton(),
         const SizedBox(width: 8),
       ],
@@ -141,7 +139,16 @@ class MainAppScreen extends ConsumerWidget {
   Widget _buildFAB(BuildContext context, WidgetRef ref, ExchangeWorkMode currentMode) {
     return FloatingActionButton.extended(
       onPressed: () {
-        ref.invalidate(filteredLaunchpoolsProvider);
+        switch (currentMode) {
+          case ExchangeWorkMode.launchpool:
+            return ref.invalidate(filteredLaunchpoolsProvider);
+          case ExchangeWorkMode.trading:
+            //return ref.invalidate();
+          case ExchangeWorkMode.analytics:
+            //return ref.invalidate();
+          case ExchangeWorkMode.portfolio:
+            //return ref.invalidate();
+        }
       },
       label: const Text('Обновить'),
       icon: const Icon(Icons.refresh),
@@ -171,7 +178,6 @@ class _SettingsButton extends StatelessWidget {
   }
 
   void _openSettings(BuildContext context) {
-    Navigator.of(context).pop();
     Navigator.of(context).pushNamed('/settings');
   }
 }
