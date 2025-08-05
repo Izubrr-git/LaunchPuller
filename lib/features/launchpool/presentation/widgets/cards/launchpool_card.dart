@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:launch_puller/core/enums/launchpool_status.dart';
 import 'package:launch_puller/features/launchpool/domain/entities/launchpool.dart';
 import 'package:launch_puller/features/launchpool/presentation/widgets/common/exchange_logo.dart';
 import 'package:launch_puller/features/launchpool/presentation/widgets/common/status_indicators.dart';
+import 'package:launch_puller/features/launchpool/presentation/widgets/dialogs/auth_setup_dialog.dart';
+import 'package:launch_puller/features/launchpool/presentation/providers/auth_provider.dart';
 
 import '../dialogs/launchpool_details_dialog.dart';
 
-class LaunchpoolCard extends StatelessWidget {
+class LaunchpoolCard extends ConsumerWidget {
   const LaunchpoolCard({
     super.key,
     required this.launchpool,
@@ -15,7 +18,7 @@ class LaunchpoolCard extends StatelessWidget {
   final Launchpool launchpool;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
@@ -128,7 +131,7 @@ class LaunchpoolCard extends StatelessWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: FilledButton.icon(
-                    onPressed: launchpool.isActive ? () => _startStaking(context) : null,
+                    onPressed: launchpool.isActive ? () => _startStaking(context, ref) : null,
                     icon: const Icon(Icons.account_balance_wallet),
                     label: Text(launchpool.isActive ? 'Участвовать' : 'Недоступно'),
                   ),
@@ -171,14 +174,30 @@ class LaunchpoolCard extends StatelessWidget {
     );
   }
 
-  void _startStaking(BuildContext context) {
+  void _startStaking(BuildContext context, WidgetRef ref) {
+    // Проверка аутентификации
+    final authState = ref.read(authStateProvider);
+    if (!authState.value!.isAuthenticated ?? true) {
+      showDialog(
+        context: context,
+        builder: (context) => const AuthSetupDialog(),
+      );
+      return;
+    }
+
+    // Переход к странице стейкинга
+    Navigator.of(context).pushNamed(
+      '/staking',
+      arguments: launchpool,
+    );
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Открываем стейкинг для ${launchpool.name}...'),
         action: SnackBarAction(
-          label: 'Открыть',
+          label: 'Отмена',
           onPressed: () {
-            // TODO: Открыть страницу стейкинга
+            Navigator.of(context).pop();
           },
         ),
       ),
@@ -444,7 +463,6 @@ class _StakingLimits extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      // TODO: Проверить нужно ли убрать преобразование в String
                       '${launchpool.minStakeAmount!.toStringAsFixed(2)}',
                       style: theme.textTheme.bodyMedium,
                     ),
@@ -466,7 +484,6 @@ class _StakingLimits extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      // TODO: Проверить нужно ли убрать преобразование в String
                       '${launchpool.maxStakeAmount!.toStringAsFixed(2)}',
                       style: theme.textTheme.bodyMedium,
                     ),

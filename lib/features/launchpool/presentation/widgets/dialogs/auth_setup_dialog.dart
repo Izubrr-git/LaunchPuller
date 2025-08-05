@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:launch_puller/core/enums/exchange_type.dart';
 import 'package:launch_puller/core/security/secure_storage_service.dart';
 import 'package:launch_puller/features/launchpool/presentation/providers/auth_provider.dart';
 import 'package:launch_puller/core/security/biometric_service.dart';
@@ -20,6 +21,7 @@ class _AuthSetupDialogState extends ConsumerState<AuthSetupDialog> {
   final _apiSecretController = TextEditingController();
   final _passwordController = TextEditingController();
 
+  ExchangeType _selectedExchange = ExchangeType.bybit;
   bool _isTestnet = false;
   bool _isLoading = false;
   bool _showSecret = false;
@@ -72,7 +74,7 @@ class _AuthSetupDialogState extends ConsumerState<AuthSetupDialog> {
             color: theme.colorScheme.primary,
           ),
           const SizedBox(width: 12),
-          Text(kIsWeb ? 'Безопасная настройка (Web)' : 'Настройка Bybit API'),
+          const Text(kIsWeb ? 'Настройка API (Web)' : 'Настройка API ключей'),
         ],
       ),
       content: SizedBox(
@@ -88,11 +90,15 @@ class _AuthSetupDialogState extends ConsumerState<AuthSetupDialog> {
                 if (kIsWeb) _WebSecurityWarning(),
                 if (kIsWeb) const SizedBox(height: 20),
 
+                // Выбор биржи
+                _buildExchangeSelector(theme),
+                const SizedBox(height: 20),
+
                 // Информация о безопасности
                 _SecurityInfoCard(),
                 const SizedBox(height: 20),
 
-                // API ключи
+                // API ключи для выбранной биржи
                 _buildApiKeySection(theme),
                 const SizedBox(height: 20),
 
@@ -102,7 +108,7 @@ class _AuthSetupDialogState extends ConsumerState<AuthSetupDialog> {
                   const SizedBox(height: 20),
                 ],
 
-                // Настройки
+                // Настройки для выбранной биржи
                 _buildSettingsSection(theme),
                 const SizedBox(height: 20),
 
@@ -132,36 +138,131 @@ class _AuthSetupDialogState extends ConsumerState<AuthSetupDialog> {
     );
   }
 
-  Widget _buildApiKeySection(ThemeData theme) {
+  Widget _buildExchangeSelector(ThemeData theme) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'API Ключи Bybit',
+          'Выбор биржи',
           style: theme.textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.bold,
           ),
         ),
         const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surfaceVariant.withOpacity(0.3),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            children: ExchangeType.values.map((exchange) {
+              final isSelected = _selectedExchange == exchange;
+              return Expanded(
+                child: GestureDetector(
+                  onTap: () => setState(() => _selectedExchange = exchange),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? theme.colorScheme.primary
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        ExchangeLogo(
+                          exchange: exchange,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          exchange.displayName,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: isSelected
+                                ? theme.colorScheme.onPrimary
+                                : theme.colorScheme.onSurface,
+                            fontWeight: isSelected
+                                ? FontWeight.bold
+                                : FontWeight.normal,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+        const SizedBox(height: 8),
+        if (_selectedExchange != ExchangeType.bybit)
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.orange.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.orange.withOpacity(0.3)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.construction, color: Colors.orange, size: 16),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Интеграция с ${_selectedExchange.displayName} в разработке',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: Colors.orange,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildApiKeySection(ThemeData theme) {
+    final exchangeConfig = _getExchangeConfig(_selectedExchange);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            ExchangeLogo(exchange: _selectedExchange, size: 20),
+            const SizedBox(width: 8),
+            Text(
+              'API Ключи ${_selectedExchange.displayName}',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
 
         TextFormField(
           controller: _apiKeyController,
-          decoration: const InputDecoration(
-            labelText: 'API Key',
-            prefixIcon: Icon(Icons.key),
-            border: OutlineInputBorder(),
-            helperText: 'Ваш Bybit API ключ',
+          decoration: InputDecoration(
+            labelText: exchangeConfig.apiKeyLabel,
+            prefixIcon: const Icon(Icons.key),
+            border: const OutlineInputBorder(),
+            helperText: exchangeConfig.apiKeyHelper,
           ),
           validator: (value) {
             if (value == null || value.isEmpty) {
-              return 'API ключ обязателен';
+              return '${exchangeConfig.apiKeyLabel} обязателен';
             }
-            if (value.length < 16) {
-              return 'API ключ должен содержать минимум 16 символов';
+            if (value.length < exchangeConfig.minApiKeyLength) {
+              return '${exchangeConfig.apiKeyLabel} должен содержать минимум ${exchangeConfig.minApiKeyLength} символов';
             }
             return null;
           },
-          enabled: !_isLoading,
+          enabled: !_isLoading && _selectedExchange == ExchangeType.bybit,
         ),
         const SizedBox(height: 12),
 
@@ -169,25 +270,25 @@ class _AuthSetupDialogState extends ConsumerState<AuthSetupDialog> {
           controller: _apiSecretController,
           obscureText: !_showSecret,
           decoration: InputDecoration(
-            labelText: 'API Secret',
+            labelText: exchangeConfig.apiSecretLabel,
             prefixIcon: const Icon(Icons.lock),
             suffixIcon: IconButton(
               icon: Icon(_showSecret ? Icons.visibility_off : Icons.visibility),
               onPressed: () => setState(() => _showSecret = !_showSecret),
             ),
             border: const OutlineInputBorder(),
-            helperText: 'Ваш секретный ключ',
+            helperText: exchangeConfig.apiSecretHelper,
           ),
           validator: (value) {
             if (value == null || value.isEmpty) {
-              return 'API секрет обязателен';
+              return '${exchangeConfig.apiSecretLabel} обязателен';
             }
-            if (value.length < 32) {
-              return 'API секрет должен содержать минимум 32 символа';
+            if (value.length < exchangeConfig.minApiSecretLength) {
+              return '${exchangeConfig.apiSecretLabel} должен содержать минимум ${exchangeConfig.minApiSecretLength} символов';
             }
             return null;
           },
-          enabled: !_isLoading,
+          enabled: !_isLoading && _selectedExchange == ExchangeType.bybit,
         ),
       ],
     );
@@ -276,6 +377,8 @@ class _AuthSetupDialogState extends ConsumerState<AuthSetupDialog> {
   }
 
   Widget _buildSettingsSection(ThemeData theme) {
+    final exchangeConfig = _getExchangeConfig(_selectedExchange);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -287,15 +390,18 @@ class _AuthSetupDialogState extends ConsumerState<AuthSetupDialog> {
         ),
         const SizedBox(height: 12),
 
-        SwitchListTile(
-          title: const Text('Testnet режим'),
-          subtitle: const Text('Использовать тестовую среду Bybit'),
-          value: _isTestnet,
-          onChanged: _isLoading ? null : (value) {
-            setState(() => _isTestnet = value);
-          },
-        ),
+        // Testnet/Sandbox режим (если поддерживается)
+        if (exchangeConfig.supportsTestnet)
+          SwitchListTile(
+            title: Text('${exchangeConfig.testnetLabel} режим'),
+            subtitle: Text('Использовать тестовую среду ${_selectedExchange.displayName}'),
+            value: _isTestnet,
+            onChanged: _isLoading || _selectedExchange != ExchangeType.bybit
+                ? null
+                : (value) => setState(() => _isTestnet = value),
+          ),
 
+        // Web Authentication (только для Web)
         if (kIsWeb && _webAuthAvailable)
           SwitchListTile(
             title: const Text('Web Authentication'),
@@ -305,12 +411,74 @@ class _AuthSetupDialogState extends ConsumerState<AuthSetupDialog> {
               setState(() => _enableWebAuth = value);
             },
           ),
+
+        // Дополнительная информация о недоступных функциях
+        if (_selectedExchange != ExchangeType.bybit)
+          Container(
+            margin: const EdgeInsets.only(top: 8),
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceVariant.withOpacity(0.3),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Text(
+              'Некоторые настройки будут доступны после добавления поддержки ${_selectedExchange.displayName}',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ),
       ],
     );
   }
 
+  ExchangeConfig _getExchangeConfig(ExchangeType exchange) {
+    switch (exchange) {
+      case ExchangeType.bybit:
+        return const ExchangeConfig(
+          apiKeyLabel: 'API Key',
+          apiKeyHelper: 'Ваш Bybit API ключ',
+          apiSecretLabel: 'API Secret',
+          apiSecretHelper: 'Ваш секретный ключ',
+          minApiKeyLength: 16,
+          minApiSecretLength: 32,
+          supportsTestnet: true,
+          testnetLabel: 'Testnet',
+        );
+      case ExchangeType.binance:
+        return const ExchangeConfig(
+          apiKeyLabel: 'API Key',
+          apiKeyHelper: 'Ваш Binance API ключ',
+          apiSecretLabel: 'Secret Key',
+          apiSecretHelper: 'Ваш секретный ключ',
+          minApiKeyLength: 64,
+          minApiSecretLength: 64,
+          supportsTestnet: true,
+          testnetLabel: 'Testnet',
+        );
+      case ExchangeType.okx:
+        return const ExchangeConfig(
+          apiKeyLabel: 'API Key',
+          apiKeyHelper: 'Ваш OKX API ключ',
+          apiSecretLabel: 'Secret Key',
+          apiSecretHelper: 'Ваш секретный ключ',
+          minApiKeyLength: 32,
+          minApiSecretLength: 43,
+          supportsTestnet: true,
+          testnetLabel: 'Demo Trading',
+        );
+    }
+  }
+
   Future<void> _saveCredentials() async {
     if (!_formKey.currentState!.validate()) return;
+
+    // Проверка на поддержку биржи
+    if (_selectedExchange != ExchangeType.bybit) {
+      _showErrorMessage('Интеграция с ${_selectedExchange.displayName} пока не реализована');
+      return;
+    }
 
     setState(() => _isLoading = true);
 
@@ -365,18 +533,18 @@ class _AuthSetupDialogState extends ConsumerState<AuthSetupDialog> {
 
   void _showSuccessMessage() {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
+      SnackBar(
         content: Row(
           children: [
-            Icon(
+            const Icon(
               kIsWeb ? Icons.web_asset : Icons.security,
               color: Colors.white,
             ),
-            SizedBox(width: 8),
+            const SizedBox(width: 8),
             Text(
               kIsWeb
-                  ? '🔐 API ключи безопасно зашифрованы для Web'
-                  : '✅ API ключи успешно сохранены',
+                  ? '🔐 API ключи ${_selectedExchange.displayName} безопасно зашифрованы'
+                  : '✅ API ключи ${_selectedExchange.displayName} успешно сохранены',
             ),
           ],
         ),
@@ -409,6 +577,30 @@ class _AuthSetupDialogState extends ConsumerState<AuthSetupDialog> {
   }
 }
 
+// Конфигурация для каждой биржи
+class ExchangeConfig {
+  const ExchangeConfig({
+    required this.apiKeyLabel,
+    required this.apiKeyHelper,
+    required this.apiSecretLabel,
+    required this.apiSecretHelper,
+    required this.minApiKeyLength,
+    required this.minApiSecretLength,
+    required this.supportsTestnet,
+    required this.testnetLabel,
+  });
+
+  final String apiKeyLabel;
+  final String apiKeyHelper;
+  final String apiSecretLabel;
+  final String apiSecretHelper;
+  final int minApiKeyLength;
+  final int minApiSecretLength;
+  final bool supportsTestnet;
+  final String testnetLabel;
+}
+
+// Компоненты из оригинального файла (без изменений)
 class _WebSecurityWarning extends StatelessWidget {
   @override
   Widget build(BuildContext context) {

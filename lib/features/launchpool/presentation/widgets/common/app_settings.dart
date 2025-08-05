@@ -1,4 +1,5 @@
 import 'package:launch_puller/core/enums/exchange_type.dart';
+import 'package:launch_puller/features/launchpool/presentation/widgets/common/exchange_menu_button.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -15,6 +16,12 @@ class AppSettings extends _$AppSettings {
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
 
+    // Загрузка уведомлений для функций
+    final featureNotifications = <ExchangeWorkMode, bool>{};
+    for (final mode in ExchangeWorkMode.values) {
+      featureNotifications[mode] = prefs.getBool('notification_${mode.name}') ?? false;
+    }
+
     state = AppSettingsData(
       isDarkMode: prefs.getBool('isDarkMode') ?? false,
       autoRefreshInterval: Duration(
@@ -29,6 +36,7 @@ class AppSettings extends _$AppSettings {
       notificationLeadTime: Duration(
         hours: prefs.getInt('notificationLeadTime') ?? 24,
       ),
+      featureNotifications: featureNotifications,
     );
   }
 
@@ -66,6 +74,18 @@ class AppSettings extends _$AppSettings {
     state = state.copyWith(enableNotifications: enable);
   }
 
+  Future<void> setNotificationPreference(ExchangeWorkMode mode, bool enabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('notification_${mode.name}', enabled);
+
+    final updatedNotifications = Map<ExchangeWorkMode, bool>.from(
+        state.featureNotifications
+    );
+    updatedNotifications[mode] = enabled;
+
+    state = state.copyWith(featureNotifications: updatedNotifications);
+  }
+
   ExchangeType? _parseExchangeType(String? value) {
     if (value == null) return null;
     try {
@@ -84,6 +104,7 @@ class AppSettingsData {
     this.showOnlyActivePoolsByDefault = true,
     this.enableNotifications = true,
     this.notificationLeadTime = const Duration(hours: 24),
+    this.featureNotifications = const {},
   });
 
   final bool isDarkMode;
@@ -92,6 +113,7 @@ class AppSettingsData {
   final bool showOnlyActivePoolsByDefault;
   final bool enableNotifications;
   final Duration notificationLeadTime;
+  final Map<ExchangeWorkMode, bool> featureNotifications;
 
   AppSettingsData copyWith({
     bool? isDarkMode,
@@ -100,6 +122,7 @@ class AppSettingsData {
     bool? showOnlyActivePoolsByDefault,
     bool? enableNotifications,
     Duration? notificationLeadTime,
+    Map<ExchangeWorkMode, bool>? featureNotifications,
   }) {
     return AppSettingsData(
       isDarkMode: isDarkMode ?? this.isDarkMode,
@@ -109,6 +132,7 @@ class AppSettingsData {
       showOnlyActivePoolsByDefault ?? this.showOnlyActivePoolsByDefault,
       enableNotifications: enableNotifications ?? this.enableNotifications,
       notificationLeadTime: notificationLeadTime ?? this.notificationLeadTime,
+      featureNotifications: featureNotifications ?? this.featureNotifications,
     );
   }
 }

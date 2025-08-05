@@ -68,7 +68,19 @@ class LaunchpoolDetailsDialog extends StatelessWidget {
           FilledButton(
             onPressed: () {
               Navigator.of(context).pop();
-              // TODO: Открыть страницу стейкинга
+              if (launchpool.isActive) {
+                FilledButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    // Переход к странице стейкинга
+                    Navigator.of(context).pushNamed(
+                      '/staking',
+                      arguments: launchpool,
+                    );
+                  },
+                  child: const Text('Участвовать'),
+                );
+              }
             },
             child: const Text('Участвовать'),
           ),
