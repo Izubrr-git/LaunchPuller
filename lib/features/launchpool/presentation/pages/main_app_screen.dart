@@ -3,12 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:launch_puller/features/launchpool/presentation/providers/launchpool_provider.dart';
 import 'package:launch_puller/features/launchpool/presentation/widgets/common/auth_status_widget.dart';
 import 'package:launch_puller/features/launchpool/presentation/widgets/common/exchange_menu_button.dart';
-import 'package:launch_puller/features/launchpool/presentation/widgets/common/loading_states.dart';
 import 'package:launch_puller/features/launchpool/presentation/widgets/common/network_status_indicator.dart';
-import 'package:launch_puller/features/launchpool/presentation/widgets/common/responsive_layout.dart';
 import 'package:launch_puller/features/launchpool/presentation/widgets/content/launchpool_content.dart';
-import 'package:launch_puller/features/launchpool/presentation/widgets/filters/exchange_filter.dart';
-import 'package:launch_puller/features/launchpool/presentation/widgets/filters/status_filter.dart';
 
 /// Основной экран приложения
 class MainAppScreen extends ConsumerWidget {
@@ -51,89 +47,19 @@ class MainAppScreen extends ConsumerWidget {
   }
 
   Widget _buildBody(BuildContext context, WidgetRef ref, ExchangeWorkMode currentMode) {
-    final launchpoolsAsync = ref.watch(filteredLaunchpoolsProvider);
-    final filter = ref.watch(launchpoolStateProvider);
-    return Column(
-      children: [
-        // Информационная панель
-        const ConnectionInfoBanner(),
-
-        // Фильтры
-        Container(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            children: [
-              // Поиск
-              SearchBar(
-                hintText: 'Поиск по названию, символу или токену...',
-                onChanged: (query) {
-                  ref.read(launchpoolStateProvider.notifier).setSearchQuery(query);
-                },
-                leading: const Icon(Icons.search),
-                trailing: filter.searchQuery.isNotEmpty
-                    ? [
-                        IconButton(
-                          icon: const Icon(Icons.clear),
-                          onPressed: () {
-                            ref.read(launchpoolStateProvider.notifier).setSearchQuery('');
-                          },
-                        ),
-                      ]
-                    : null,
-              ),
-              const SizedBox(height: 16),
-
-              // Кнопка очистки фильтров
-              if (filter.hasActiveFilters)
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () {
-                          ref.read(launchpoolStateProvider.notifier).clearFilters();
-                        },
-                        icon: const Icon(Icons.clear_all),
-                        label: const Text('Очистить фильтры'),
-                      ),
-                    ),
-                  ],
-                ),
-              if (filter.hasActiveFilters) const SizedBox(height: 16),
-
-              // Фильтры по биржам и статусу
-              const ExchangeFilter(),
-              const SizedBox(height: 8),
-              const StatusFilter(),
-            ],
-          ),
-        ),
-        const Divider(),
-
-        // Список Launchpool'ов
-        Expanded(
-          child: launchpoolsAsync.when(
-            data: (launchpools) {
-              if (launchpools.isEmpty) {
-                return EmptyState(
-                  hasFilters: filter.hasActiveFilters,
-                  onClearFilters: () {
-                    ref.read(launchpoolStateProvider.notifier).clearFilters();
-                  },
-                );
-              }
-              return ResponsiveLaunchpoolGrid(launchpools: launchpools);
-            },
-            loading: () => const LoadingState(),
-            error: (error, stack) => ErrorState(
-              error: error,
-              onRetry: () {
-                ref.invalidate(filteredLaunchpoolsProvider);
-              },
-            ),
-          ),
-        ),
-      ],
-    );
+    switch (currentMode) {
+      case ExchangeWorkMode.launchpool:
+        return const LaunchpoolContent();
+      case ExchangeWorkMode.trading:
+      // Здесь будет TradingContent()
+        return const Center(child: Text('Торговля - в разработке'));
+      case ExchangeWorkMode.analytics:
+      // Здесь будет AnalyticsContent()
+        return const Center(child: Text('Аналитика рынка - в разработке'));
+      case ExchangeWorkMode.portfolio:
+      // Здесь будет PortfolioContent()
+        return const Center(child: Text('Мой портфель - в разработке'));
+    }
   }
 
   Widget _buildFAB(BuildContext context, WidgetRef ref, ExchangeWorkMode currentMode) {
@@ -143,11 +69,11 @@ class MainAppScreen extends ConsumerWidget {
           case ExchangeWorkMode.launchpool:
             return ref.invalidate(filteredLaunchpoolsProvider);
           case ExchangeWorkMode.trading:
-            //return ref.invalidate();
+          //return ref.invalidate();
           case ExchangeWorkMode.analytics:
-            //return ref.invalidate();
+          //return ref.invalidate();
           case ExchangeWorkMode.portfolio:
-            //return ref.invalidate();
+          //return ref.invalidate();
         }
       },
       label: const Text('Обновить'),
