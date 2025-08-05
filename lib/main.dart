@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:launch_puller/features/launchpool/presentation/pages/launchpool_page.dart';
-import 'package:launch_puller/features/launchpool/presentation/pages/main_app_screen.dart';
+import 'package:launch_puller/features/launchpool/presentation/pages/main_page.dart';
+import 'package:launch_puller/features/launchpool/presentation/pages/settings_page.dart';
 
 void main() {
   runApp(
@@ -38,6 +38,9 @@ class LaunchpoolApp extends StatelessWidget {
           centerTitle: true,
         ),
       ),
+      routes: {
+        '/settings': (context) => const SettingsPage(),
+      },
       home: const MainAppScreen(),
     );
   }

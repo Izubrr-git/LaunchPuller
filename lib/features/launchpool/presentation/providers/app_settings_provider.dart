@@ -3,7 +3,7 @@ import 'package:launch_puller/features/launchpool/presentation/widgets/common/ex
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-part 'app_settings.g.dart';
+part 'app_settings_provider.g.dart';
 
 @riverpod
 class AppSettings extends _$AppSettings {
@@ -84,6 +84,12 @@ class AppSettings extends _$AppSettings {
     updatedNotifications[mode] = enabled;
 
     state = state.copyWith(featureNotifications: updatedNotifications);
+  }
+
+  Future<void> setNotificationLeadTime(Duration leadTime) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('notificationLeadTime', leadTime.inHours);
+    state = state.copyWith(notificationLeadTime: leadTime);
   }
 
   ExchangeType? _parseExchangeType(String? value) {

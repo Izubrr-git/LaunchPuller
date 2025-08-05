@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:launch_puller/features/launchpool/presentation/widgets/common/app_settings.dart';
+import 'package:launch_puller/features/launchpool/presentation/providers/app_settings_provider.dart';
 import 'package:launch_puller/features/launchpool/presentation/widgets/common/exchange_menu_button.dart';
 
 class ComingSoonDialog extends ConsumerWidget {

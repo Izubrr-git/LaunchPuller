@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:launch_puller/features/launchpool/presentation/pages/launchpool_page.dart';
 import 'package:launch_puller/features/launchpool/presentation/providers/launchpool_provider.dart';
+import 'package:launch_puller/features/launchpool/presentation/widgets/common/connection_info_banner.dart';
 import 'package:launch_puller/features/launchpool/presentation/widgets/common/loading_states.dart';
 import 'package:launch_puller/features/launchpool/presentation/widgets/common/responsive_layout.dart';
 import 'package:launch_puller/features/launchpool/presentation/widgets/filters/exchange_filter.dart';
