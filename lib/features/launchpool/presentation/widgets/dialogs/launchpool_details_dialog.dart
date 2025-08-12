@@ -53,7 +53,7 @@ class LaunchpoolDetailsDialog extends StatelessWidget {
               label: 'Токены для стейкинга',
               value: launchpool.stakingTokens.join(', '),
             ),
-            _DetailRow(label: 'APY', value: '${launchpool.apy.toStringAsFixed(2)}%'),
+            _DetailRow(label: 'APY', value: '${launchpool.apr.toStringAsFixed(2)}%'),
             _DetailRow(label: 'Общая награда', value: launchpool.totalReward),
             _DetailRow(label: 'Биржа', value: launchpool.exchange.displayName),
           ],

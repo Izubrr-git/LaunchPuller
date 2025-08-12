@@ -28,31 +28,86 @@ class LaunchpoolCard extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Заголовок с биржей и статусом
+          // Заголовок с биржей и статусом - ОБНОВЛЕНО для лучшего отображения APR
           Container(
             padding: const EdgeInsets.all(16),
-            color: _getStatusColor(launchpool.status, colorScheme),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  _getStatusColor(launchpool.status, colorScheme),
+                  _getStatusColor(launchpool.status, colorScheme).withOpacity(0.8),
+                ],
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+              ),
+            ),
             child: Row(
               children: [
-                // Лого биржи
-                ExchangeLogo(exchange: launchpool.exchange),
+                // Специальная иконка Launchpool
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.rocket_launch,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                ),
                 const SizedBox(width: 12),
-                // Название проекта
+                // Информация о проекте
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      Row(
+                        children: [
+                          Text(
+                            'LAUNCHPOOL',
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: Colors.white.withOpacity(0.8),
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 1.2,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          // Биржа
+                          ExchangeLogo(exchange: launchpool.exchange, size: 16),
+                          // Показать тип проекта (history/current) если доступно
+                          if (launchpool.projectType != null) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Text(
+                                launchpool.projectType!.toUpperCase(),
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: 4),
                       Text(
                         launchpool.name,
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.bold,
-                          color: colorScheme.onPrimary,
+                          color: Colors.white,
                         ),
                       ),
                       Text(
-                        '${launchpool.symbol} • ${launchpool.projectToken}',
+                        '${launchpool.symbol} → ${launchpool.projectToken}',
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: colorScheme.onPrimary.withOpacity(0.8),
+                          color: Colors.white.withOpacity(0.9),
                         ),
                       ),
                     ],
@@ -63,19 +118,23 @@ class LaunchpoolCard extends ConsumerWidget {
               ],
             ),
           ),
+
           // Основная информация
           Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // APY и награды
+                // APR и Pool Size - ОБНОВЛЕНО для отображения лучшего APR
                 Row(
                   children: [
                     Expanded(
                       child: _InfoTile(
-                        label: 'APY',
-                        value: '${launchpool.apy.toStringAsFixed(2)}%',
+                        label: 'APR',
+                        value: '${launchpool.displayApr.toStringAsFixed(2)}%',
+                        subtitle: launchpool.aprHigh != null && launchpool.aprHigh! > launchpool.apr
+                            ? 'Max: ${launchpool.aprHigh!.toStringAsFixed(2)}%'
+                            : null,
                         icon: Icons.trending_up,
                         color: Colors.green,
                       ),
@@ -83,57 +142,84 @@ class LaunchpoolCard extends ConsumerWidget {
                     const SizedBox(width: 16),
                     Expanded(
                       child: _InfoTile(
-                        label: 'Общая награда',
-                        value: _formatAmount(launchpool.totalReward),
-                        icon: Icons.monetization_on,
+                        label: 'Pool Size',
+                        value: _formatPoolSize(launchpool.totalReward),
+                        subtitle: launchpool.availablePoolsCount > 1
+                            ? '${launchpool.availablePoolsCount} pools'
+                            : null,
+                        icon: Icons.pool,
                         color: Colors.orange,
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
-                // Токены для стейкинга
-                _InfoSection(
-                  title: 'Токены для стейкинга',
-                  child: Wrap(
-                    spacing: 8,
-                    children: launchpool.stakingTokens
-                        .map((token) => Chip(
-                      label: Text(token),
-                      backgroundColor: colorScheme.primaryContainer,
-                    ))
-                        .toList(),
+
+                // Участники и статистика - НОВЫЙ блок
+                if (launchpool.totalUsers != null || launchpool.totalStaked != null)
+                  Column(
+                    children: [
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          if (launchpool.totalStaked != null)
+                            Expanded(
+                              child: _InfoTile(
+                                label: 'Total Staked',
+                                value: _formatPoolSize(launchpool.totalStakedInPools.toString()),
+                                subtitle: 'Current',
+                                icon: Icons.account_balance_wallet,
+                                color: Colors.purple,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ],
                   ),
-                ),
                 const SizedBox(height: 16),
-                // Временные рамки
-                _TimeInfo(launchpool: launchpool),
+
+                // Duration & Countdown - ОБНОВЛЕНО для лучшего отображения времени
+                _LaunchpoolTimeInfo(launchpool: launchpool),
                 const SizedBox(height: 16),
-                // Лимиты стейкинга (если есть)
-                if (launchpool.minStakeAmount != null ||
-                    launchpool.maxStakeAmount != null)
-                  _StakingLimits(launchpool: launchpool),
               ],
             ),
           ),
-          // Кнопки действий
+
+          // Action Buttons - УЛУЧШЕНО для различных состояний
           Container(
             padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: colorScheme.surfaceVariant.withOpacity(0.3),
+            ),
             child: Row(
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
                     onPressed: () => _showDetails(context),
-                    icon: const Icon(Icons.info_outline),
-                    label: const Text('Подробнее'),
+                    icon: const Icon(Icons.info_outline, size: 18),
+                    label: const Text('Project Info'),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
+                  flex: 2,
                   child: FilledButton.icon(
-                    onPressed: launchpool.isActive ? () => _startStaking(context, ref) : null,
-                    icon: const Icon(Icons.account_balance_wallet),
-                    label: Text(launchpool.isActive ? 'Участвовать' : 'Недоступно'),
+                    onPressed: _getButtonEnabled()
+                        ? () => _startParticipation(context, ref)
+                        : null,
+                    icon: Icon(
+                      _getActionIcon(),
+                      size: 18,
+                    ),
+                    label: Text(_getActionText()),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: _getButtonEnabled()
+                          ? _getButtonColor()
+                          : null,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
                   ),
                 ),
               ],
@@ -147,17 +233,17 @@ class LaunchpoolCard extends ConsumerWidget {
   Color _getStatusColor(LaunchpoolStatus status, ColorScheme colorScheme) {
     switch (status) {
       case LaunchpoolStatus.active:
-        return Colors.green;
+        return Colors.green.shade600;
       case LaunchpoolStatus.upcoming:
-        return Colors.blue;
+        return Colors.blue.shade600;
       case LaunchpoolStatus.ended:
-        return Colors.grey;
+        return Colors.grey.shade600;
     }
   }
 
-  String _formatAmount(String amount) {
-    final num? value = num.tryParse(amount);
-    if (value == null) return amount;
+  String _formatPoolSize(String totalReward) {
+    final num? value = num.tryParse(totalReward);
+    if (value == null || value == 0) return 'TBA'; // To Be Announced
 
     if (value >= 1000000) {
       return '${(value / 1000000).toStringAsFixed(1)}M';
@@ -167,6 +253,43 @@ class LaunchpoolCard extends ConsumerWidget {
     return value.toStringAsFixed(0);
   }
 
+  IconData _getActionIcon() {
+    switch (launchpool.status) {
+      case LaunchpoolStatus.active:
+        return Icons.rocket_launch;
+      case LaunchpoolStatus.upcoming:
+        return Icons.schedule;
+      case LaunchpoolStatus.ended:
+        return Icons.history;
+    }
+  }
+
+  String _getActionText() {
+    switch (launchpool.status) {
+      case LaunchpoolStatus.active:
+        return launchpool.isSignUpAvailable ? 'Join Pool' : 'View Pool';
+      case LaunchpoolStatus.upcoming:
+        return 'Coming Soon';
+      case LaunchpoolStatus.ended:
+        return 'View Results';
+    }
+  }
+
+  bool _getButtonEnabled() {
+    return launchpool.isActive || launchpool.isEnded;
+  }
+
+  Color _getButtonColor() {
+    switch (launchpool.status) {
+      case LaunchpoolStatus.active:
+        return Colors.green;
+      case LaunchpoolStatus.upcoming:
+        return Colors.blue;
+      case LaunchpoolStatus.ended:
+        return Colors.grey;
+    }
+  }
+
   void _showDetails(BuildContext context) {
     showDialog(
       context: context,
@@ -174,34 +297,41 @@ class LaunchpoolCard extends ConsumerWidget {
     );
   }
 
-  void _startStaking(BuildContext context, WidgetRef ref) {
-    // Проверка аутентификации
-    final authState = ref.read(authStateProvider);
-    if (!authState.value!.isAuthenticated ?? true) {
-      showDialog(
-        context: context,
-        builder: (context) => const AuthSetupDialog(),
+  void _startParticipation(BuildContext context, WidgetRef ref) {
+    // Проверка аутентификации для активных пулов
+    if (launchpool.isActive) {
+      final authState = ref.read(authStateProvider);
+      if (!authState.value!.isAuthenticated ?? true) {
+        showDialog(
+          context: context,
+          builder: (context) => const AuthSetupDialog(),
+        );
+        return;
+      }
+
+      // Переход к странице участия в Launchpool
+      Navigator.of(context).pushNamed(
+        '/launchpool-participation',
+        arguments: launchpool,
       );
-      return;
-    }
 
-    // Переход к странице стейкинга
-    Navigator.of(context).pushNamed(
-      '/staking',
-      arguments: launchpool,
-    );
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Открываем стейкинг для ${launchpool.name}...'),
-        action: SnackBarAction(
-          label: 'Отмена',
-          onPressed: () {
-            Navigator.of(context).pop();
-          },
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Joining ${launchpool.name} Launchpool...'),
+          backgroundColor: Colors.green,
+          action: SnackBarAction(
+            label: 'Cancel',
+            textColor: Colors.white,
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+          ),
         ),
-      ),
-    );
+      );
+    } else {
+      // Для завершённых пулов - показать детали/результаты
+      _showDetails(context);
+    }
   }
 }
 
@@ -211,12 +341,14 @@ class _InfoTile extends StatelessWidget {
     required this.value,
     required this.icon,
     required this.color,
+    this.subtitle,
   });
 
   final String label;
   final String value;
   final IconData icon;
   final Color color;
+  final String? subtitle;
 
   @override
   Widget build(BuildContext context) {
@@ -236,11 +368,13 @@ class _InfoTile extends StatelessWidget {
             children: [
               Icon(icon, size: 16, color: color),
               const SizedBox(width: 4),
-              Text(
-                label,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: color,
-                  fontWeight: FontWeight.w500,
+              Expanded(
+                child: Text(
+                  label,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: color,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ),
             ],
@@ -253,6 +387,16 @@ class _InfoTile extends StatelessWidget {
               color: color,
             ),
           ),
+          if (subtitle != null) ...[
+            const SizedBox(height: 2),
+            Text(
+              subtitle!,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: color.withOpacity(0.7),
+                fontSize: 10,
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -288,8 +432,8 @@ class _InfoSection extends StatelessWidget {
   }
 }
 
-class _TimeInfo extends StatelessWidget {
-  const _TimeInfo({required this.launchpool});
+class _LaunchpoolTimeInfo extends StatelessWidget {
+  const _LaunchpoolTimeInfo({required this.launchpool});
 
   final Launchpool launchpool;
 
@@ -298,7 +442,7 @@ class _TimeInfo extends StatelessWidget {
     final theme = Theme.of(context);
 
     return _InfoSection(
-      title: 'Временные рамки',
+      title: 'Launch Timeline',
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
@@ -308,18 +452,27 @@ class _TimeInfo extends StatelessWidget {
         child: Column(
           children: [
             _TimeRow(
-              label: 'Начало',
+              label: 'Launch',
               dateTime: launchpool.startTime,
-              icon: Icons.play_arrow,
+              icon: Icons.rocket_launch,
             ),
             const SizedBox(height: 8),
             _TimeRow(
-              label: 'Окончание',
+              label: 'End',
               dateTime: launchpool.endTime,
-              icon: Icons.stop,
+              icon: Icons.event_busy,
             ),
-            const SizedBox(height: 8),
-            _TimeRemaining(launchpool: launchpool),
+            // Показать время торговли если доступно
+            if (launchpool.tradeBeginTime != null) ...[
+              const SizedBox(height: 8),
+              _TimeRow(
+                label: 'Trading',
+                dateTime: DateTime.fromMillisecondsSinceEpoch(launchpool.tradeBeginTime!),
+                icon: Icons.trending_up,
+              ),
+            ],
+            const SizedBox(height: 12),
+            _LaunchpoolCountdown(launchpool: launchpool),
           ],
         ),
       ),
@@ -365,8 +518,9 @@ class _TimeRow extends StatelessWidget {
   }
 }
 
-class _TimeRemaining extends StatelessWidget {
-  const _TimeRemaining({required this.launchpool});
+class _LaunchpoolCountdown extends StatelessWidget {
+  const _LaunchpoolCountdown({required this.launchpool});
+
 
   final Launchpool launchpool;
 
@@ -378,40 +532,54 @@ class _TimeRemaining extends StatelessWidget {
     Duration duration;
     Color color;
     IconData icon;
+    String prefix;
 
+    // Используем улучшенную логику определения статуса
     if (launchpool.isUpcoming) {
       duration = launchpool.timeToStart;
-      timeText = 'До начала: ${_formatDuration(duration)}';
+      prefix = 'Launches in';
+      timeText = _formatDuration(duration);
       color = Colors.blue;
-      icon = Icons.schedule;
-    } else if (launchpool.isActive) {
+      icon = Icons.rocket_launch;
+    } else if (launchpool.isActiveByTimeStatus) {
       duration = launchpool.timeRemaining;
-      timeText = 'До окончания: ${_formatDuration(duration)}';
+      prefix = 'Ends in';
+      timeText = _formatDuration(duration);
       color = Colors.green;
       icon = Icons.timer;
     } else {
-      timeText = 'Завершен';
+      prefix = 'Status';
+      timeText = 'Campaign Ended';
       color = Colors.grey;
       icon = Icons.check_circle;
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: color.withOpacity(0.3)),
       ),
       child: Row(
-        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, size: 14, color: color),
+          Icon(icon, size: 16, color: color),
+          const SizedBox(width: 6),
+          Text(
+            prefix,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: color,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
           const SizedBox(width: 4),
           Text(
             timeText,
             style: theme.textTheme.bodySmall?.copyWith(
               color: color,
-              fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.bold,
             ),
           ),
         ],
@@ -421,79 +589,13 @@ class _TimeRemaining extends StatelessWidget {
 
   String _formatDuration(Duration duration) {
     if (duration.inDays > 0) {
-      return '${duration.inDays}д ${duration.inHours % 24}ч';
+      return '${duration.inDays}d ${duration.inHours % 24}h';
     } else if (duration.inHours > 0) {
-      return '${duration.inHours}ч ${duration.inMinutes % 60}м';
+      return '${duration.inHours}h ${duration.inMinutes % 60}m';
     } else if (duration.inMinutes > 0) {
-      return '${duration.inMinutes}м';
+      return '${duration.inMinutes}m';
     } else {
-      return 'Менее минуты';
+      return 'Soon';
     }
-  }
-}
-
-class _StakingLimits extends StatelessWidget {
-  const _StakingLimits({required this.launchpool});
-
-  final Launchpool launchpool;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return _InfoSection(
-      title: 'Лимиты стейкинга',
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surfaceVariant.withOpacity(0.5),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Row(
-          children: [
-            if (launchpool.minStakeAmount != null) ...[
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Минимум',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    Text(
-                      '${launchpool.minStakeAmount!.toStringAsFixed(2)}',
-                      style: theme.textTheme.bodyMedium,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-            if (launchpool.minStakeAmount != null && launchpool.maxStakeAmount != null)
-              const SizedBox(width: 16),
-            if (launchpool.maxStakeAmount != null) ...[
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Максимум',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    Text(
-                      '${launchpool.maxStakeAmount!.toStringAsFixed(2)}',
-                      style: theme.textTheme.bodyMedium,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
   }
 }

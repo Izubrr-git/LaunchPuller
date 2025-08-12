@@ -1,3 +1,4 @@
+// bybit_datasource.dart - ОБНОВЛЕННАЯ ВЕРСИЯ
 import 'dart:convert';
 import 'package:launch_puller/core/enums/exchange_type.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -36,7 +37,7 @@ class BybitDataSource implements ExchangeDataSource {
 
   @override
   Future<List<Map<String, dynamic>>> fetchLaunchpools() async {
-    const cacheKey = 'bybit_launchpools';
+    const cacheKey = 'bybit_launchpools_all';
 
     // Проверяем кэш
     final cached = cacheService.get(cacheKey);
@@ -45,52 +46,30 @@ class BybitDataSource implements ExchangeDataSource {
     }
 
     try {
-      final credentials = await authService.getCredentials();
-      final baseUrl = credentials?.baseUrl ?? ApiConstants.bybitMainnet;
+      // Получаем активные Launchpool проекты
+      final currentProjects = await _fetchCurrentLaunchpools();
+      print('🔴 Активных проектов: ${currentProjects.length}');
 
-      final queryParams = <String, String>{
-        'productType': 'LAUNCHPOOL',
-        'limit': '50',
-      };
+      // Получаем завершённые Launchpool проекты (историю)
+      final historyProjects = await _fetchLaunchpoolHistoryProjects();
+      print('🔵 Завершённых проектов: ${historyProjects.length}');
 
-      final response = await apiClient.get(
-        url: '$baseUrl${ApiConstants.bybitEarnProducts}',
-        queryParams: queryParams,
-        headers: _buildPublicHeaders(),
-      );
+      // Объединяем активные и завершённые проекты
+      final allProjects = <Map<String, dynamic>>[
+        // Активные проекты (из /home)
+        ...currentProjects.map((p) => _currentProjectToMap(p)),
+        // Завершённые проекты (из /history)
+        ...historyProjects.map((h) => _historyItemToMap(h)),
+      ];
 
-      final apiResponse = BybitApiResponse<BybitEarnProductsResponse>.fromJson(
-        response,
-            (json) => BybitEarnProductsResponse.fromJson(json),
-      );
-
-      if (!apiResponse.isSuccess) {
-        throw ApiException(
-          'Bybit API Error: ${apiResponse.errorMessage}',
-          apiResponse.retCode,
-        );
-      }
-
-      final products = apiResponse.result?.rows ?? [];
-
-      // Фильтруем только Launchpool продукты
-      final launchpools = products
-          .where((product) => product.productType == 'LAUNCHPOOL')
-          .map((product) => product.toJson())
-          .toList();
+      print('📊 Всего проектов: ${allProjects.length}');
 
       // Сохраняем в кэш
-      cacheService.set(
-        cacheKey,
-        launchpools,
-        duration: ApiConstants.cacheExpiry,
-      );
+      cacheService.set(cacheKey, allProjects, duration: ApiConstants.cacheExpiry);
+      return allProjects;
 
-      return launchpools;
-    } on ExchangeException {
-      rethrow;
     } catch (e) {
-      throw NetworkException('Ошибка получения данных Bybit Launchpool: $e');
+      throw NetworkException('Ошибка получения Launchpool данных: $e');
     }
   }
 
@@ -99,62 +78,167 @@ class BybitDataSource implements ExchangeDataSource {
     final pools = await fetchLaunchpools();
     final pool = pools.firstWhere(
           (p) => p['productId'] == id,
-      orElse: () => throw ApiException('Launchpool с ID $id не найден на Bybit'),
+      orElse: () => throw ApiException('Launchpool с ID $id не найден'),
     );
     return pool;
   }
 
-  /// Получение записей пользователя (требует аутентификации)
-  Future<List<BybitEarnRecord>> fetchUserEarnRecords({
-    String? productType,
-    String? productId,
-    int limit = 50,
-    String? cursor,
-  }) async {
+  /// Получение активных Launchpool проектов (/home)
+  Future<List<BybitLaunchpoolProject>> _fetchCurrentLaunchpools() async {
     try {
-      final credentials = await authService.getCredentials();
-      if (credentials == null) {
-        throw const ApiException('Необходима аутентификация');
-      }
-
-      final queryParams = <String, String>{
-        'limit': limit.toString(),
-        if (productType != null) 'productType': productType,
-        if (productId != null) 'productId': productId,
-        if (cursor != null) 'cursor': cursor,
-      };
-
-      final headers = await authService.buildAuthHeaders(
-        endpoint: ApiConstants.bybitEarnRecord,
-        method: 'GET',
-        queryParams: queryParams,
-      );
-
       final response = await apiClient.get(
-        url: '${credentials.baseUrl}${ApiConstants.bybitEarnRecord}',
-        queryParams: queryParams,
-        headers: headers,
+        url: '${ApiConstants.bybitWebApi}${ApiConstants.bybitLaunchpoolCurrent}',
+        headers: ApiConstants.webApiHeaders,
       );
 
-      final apiResponse = BybitApiResponse<BybitEarnRecordsResponse>.fromJson(
-        response,
-            (json) => BybitEarnRecordsResponse.fromJson(json),
-      );
+      final homeResponse = BybitLaunchpoolHomeResponse.fromJson(response);
+      print('✅ Активных Launchpool: ${homeResponse.projects.length}');
 
-      if (!apiResponse.isSuccess) {
-        throw ApiException(
-          'Bybit API Error: ${apiResponse.errorMessage}',
-          apiResponse.retCode,
-        );
-      }
-
-      return apiResponse.result?.rows ?? [];
+      return homeResponse.projects;
     } catch (e) {
-      throw NetworkException('Ошибка получения пользовательских данных: $e');
+      print('⚠️ Ошибка получения активных Launchpool: $e');
+      return [];
     }
   }
 
-  /// Подписка на Launchpool (требует аутентификации)
+  /// Получение завершённых Launchpool проектов (/history)
+  Future<List<BybitLaunchpoolHistoryItem>> _fetchLaunchpoolHistoryProjects({
+    int pageSize = 20,
+    int current = 1,
+  }) async {
+    try {
+      final body = {
+        'pageSize': pageSize,
+        'current': current,
+      };
+
+      final response = await apiClient.post(
+        url: '${ApiConstants.bybitWebApi}${ApiConstants.bybitLaunchpoolHistory}',
+        headers: ApiConstants.webApiHeaders,
+        body: jsonEncode(body),
+      );
+
+      print('🔍 Ответ history API: ${response.keys.toList()}');
+
+      final historyResponse = BybitLaunchpoolHistoryResponse.fromJson(response);
+      print('✅ Завершённых Launchpool: ${historyResponse.items.length}');
+
+      return historyResponse.items;
+    } catch (e) {
+      print('⚠️ Ошибка получения истории Launchpool: $e');
+      return [];
+    }
+  }
+
+  /// Преобразование активного проекта в Map
+  Map<String, dynamic> _currentProjectToMap(BybitLaunchpoolProject project) {
+    return {
+      'productId': project.id,
+      'category': 'Launchpool',
+      'coin': project.symbol,
+      'estimateApr': '${project.apr}%',
+      'minStakeAmount': project.minStakeAmount?.toString() ?? '0',
+      'maxStakeAmount': project.maxStakeAmount?.toString() ?? '0',
+      'status': 'Available', // Активные всегда Available
+      'productName': project.name,
+      'description': project.description,
+      'startTime': project.startTime.millisecondsSinceEpoch.toString(),
+      'endTime': project.endTime.millisecondsSinceEpoch.toString(),
+      'totalReward': project.totalReward ?? '0',
+      'stakingTokens': project.stakingTokens ?? [project.symbol],
+      'projectType': 'current', // Метка для различения
+    };
+  }
+
+  /// Преобразование исторического проекта в Map - ОБНОВЛЕНО под новую модель Launchpool
+  Map<String, dynamic> _historyItemToMap(BybitLaunchpoolHistoryItem item) {
+    final primaryPool = item.primaryPool;
+
+    return {
+      'productId': item.code,
+      'category': 'Launchpool',
+      'coin': item.returnCoin,
+      'estimateApr': '${item.maxApr.toStringAsFixed(2)}%',
+      'minStakeAmount': item.minStakeAmount.toString(),
+      'maxStakeAmount': item.maxStakeAmount.toString(),
+      'status': item.isActive ? 'Available' : 'NotAvailable',
+      'productName': item.name,
+      'description': item.desc.length > 200
+          ? '${item.desc.substring(0, 200)}...'
+          : item.desc,
+      'startTime': item.startTime.millisecondsSinceEpoch.toString(),
+      'endTime': item.endTime.millisecondsSinceEpoch.toString(),
+      'totalReward': item.totalPoolAmount,
+      'stakingTokens': item.stakingTokens,
+      'projectType': 'history',
+      'returnCoinIcon': item.returnCoinIcon,
+      'website': item.website,
+      'whitepaper': item.whitepaper,
+      'rules': item.rules,
+      'totalUsers': primaryPool?.totalUser ?? 0,
+      'totalStaked': primaryPool?.totalAmountDouble ?? 0.0,
+      // Новые поля для полного маппинга
+      'code': item.code,
+      'aprHigh': item.maxApr,
+      'stakeBeginTime': item.stakeBeginTime,
+      'stakeEndTime': item.stakeEndTime,
+      'tradeBeginTime': item.tradeBeginTime,
+      'feTimeStatus': item.feTimeStatus,
+      'signUpStatus': item.signUpStatus,
+      'openWarmingUpPledge': item.openWarmingUpPledge,
+      'stakePoolList': item.stakePoolList.map((pool) => {
+        'stakePoolCode': pool.stakePoolCode,
+        'stakeCoin': pool.stakeCoin,
+        'stakeCoinIcon': pool.stakeCoinIcon,
+        'apr': pool.aprDouble,
+        'aprVip': pool.aprVipDouble,
+        'minStakeAmount': pool.minStakeAmountDouble,
+        'maxStakeAmount': pool.maxStakeAmountDouble,
+        'totalUsers': pool.totalUser,
+        'poolAmount': pool.poolAmountDouble,
+        'totalAmount': pool.totalAmountDouble,
+        'samePeriod': pool.samePeriod,
+        'stakeBeginTime': pool.stakeBeginTime,
+        'stakeEndTime': pool.stakeEndTime,
+        'vipAdd': pool.vipAdd,
+        'minVipAmount': pool.minVipAmountDouble,
+        'maxVipAmount': pool.maxVipAmountDouble,
+        'vipPercent': pool.vipPercent,
+        'poolTag': pool.poolTag,
+        'useNewUserFunction': pool.useNewUserFunction,
+        'useNewVipFunction': pool.useNewVipFunction,
+        'openWarmingUpPledge': pool.openWarmingUpPledge,
+        'newVipPercent': pool.newVipPercent,
+        'minNewVipAmount': pool.minNewVipAmount,
+        'maxNewVipAmount': pool.maxNewVipAmount,
+        'newVipValidateDays': pool.newVipValidateDays,
+        'minNewUserAmount': pool.minNewUserAmount,
+        'maxNewUserAmount': pool.maxNewUserAmount,
+        'newUserValidateDays': pool.newUserValidateDays,
+        'newUserPercent': pool.newUserPercent,
+        'myTotalYield': pool.myTotalYield,
+        'poolLoanConfig': pool.poolLoanConfig,
+        'leverage': pool.leverage,
+        'maxStakeLimit': pool.maxStakeLimit,
+        'dailyIncomeAmt': pool.dailyIncomeAmt,
+        'newUserTag': pool.newUserTag,
+        'newVipUserTag': pool.newVipUserTag,
+      }).toList(),
+    };
+  }
+
+  /// Получение истории Launchpool для пользователей
+  Future<List<BybitLaunchpoolHistoryItem>> fetchLaunchpoolHistoryItems({
+    int pageSize = 20,
+    int current = 1,
+  }) async {
+    return await _fetchLaunchpoolHistoryProjects(
+      pageSize: pageSize,
+      current: current,
+    );
+  }
+
+  /// Подписка на продукт
   Future<String> subscribeToLaunchpool({
     required String productId,
     required String amount,
@@ -197,11 +281,11 @@ class BybitDataSource implements ExchangeDataSource {
 
       return apiResponse.result?.orderId ?? '';
     } catch (e) {
-      throw NetworkException('Ошибка подписки на Launchpool: $e');
+      throw NetworkException('Ошибка подписки на продукт: $e');
     }
   }
 
-  /// Погашение из Launchpool
+  /// Погашение продукта
   Future<String> redeemFromLaunchpool({
     required String productId,
     required String amount,
@@ -244,33 +328,92 @@ class BybitDataSource implements ExchangeDataSource {
 
       return apiResponse.result?.orderId ?? '';
     } catch (e) {
-      throw NetworkException('Ошибка погашения из Launchpool: $e');
+      throw NetworkException('Ошибка погашения продукта: $e');
     }
   }
 
-  /// Получение серверного времени
-  Future<int> getServerTime() async {
+  /// Получение подробной информации о конкретном пуле стейкинга
+  Future<Map<String, dynamic>?> fetchStakePoolDetails({
+    required String stakePoolCode,
+  }) async {
     try {
-      final credentials = await authService.getCredentials();
-      final baseUrl = credentials?.baseUrl ?? ApiConstants.bybitMainnet;
+      final historyItems = await fetchLaunchpoolHistoryItems(pageSize: 50);
 
-      final response = await apiClient.get(
-        url: '$baseUrl/v5/market/time',
-        headers: _buildPublicHeaders(),
-      );
+      for (final item in historyItems) {
+        final pool = item.stakePoolList.firstWhere(
+              (pool) => pool.stakePoolCode == stakePoolCode,
+          orElse: () => throw Exception('Pool not found'),
+        );
 
-      final apiResponse = BybitApiResponse<Map<String, dynamic>>.fromJson(
-        response,
-            (json) => json,
-      );
-
-      if (!apiResponse.isSuccess) {
-        throw ApiException('Ошибка получения серверного времени');
+        if (pool.stakePoolCode == stakePoolCode) {
+          return {
+            'stakePoolCode': pool.stakePoolCode,
+            'stakeCoin': pool.stakeCoin,
+            'stakeCoinIcon': pool.stakeCoinIcon,
+            'apr': pool.aprDouble,
+            'aprVip': pool.aprVipDouble,
+            'minStakeAmount': pool.minStakeAmountDouble,
+            'maxStakeAmount': pool.maxStakeAmountDouble,
+            'totalUsers': pool.totalUser,
+            'poolAmount': pool.poolAmountDouble,
+            'totalAmount': pool.totalAmountDouble,
+            'projectInfo': {
+              'code': item.code,
+              'returnCoin': item.returnCoin,
+              'desc': item.desc,
+              'website': item.website,
+              'whitepaper': item.whitepaper,
+              'rules': item.rules,
+            },
+          };
+        }
       }
 
-      return int.tryParse(apiResponse.result?['timeSecond']?.toString() ?? '0') ?? 0;
+      return null;
     } catch (e) {
-      return DateTime.now().millisecondsSinceEpoch ~/ 1000;
+      print('⚠️ Ошибка получения деталей пула $stakePoolCode: $e');
+      return null;
+    }
+  }
+
+  /// Получение статистики по всем Launchpool проектам
+  Future<Map<String, dynamic>> fetchLaunchpoolStatistics() async {
+    try {
+      final allProjects = await fetchLaunchpools();
+
+      final activePools = allProjects.where((p) => p['status'] == 'Available').length;
+      final endedPools = allProjects.where((p) => p['status'] == 'NotAvailable').length;
+
+      final totalUsers = allProjects.fold<int>(0, (sum, project) {
+        return sum + (project['totalUsers'] as int? ?? 0);
+      });
+
+      final totalStaked = allProjects.fold<double>(0.0, (sum, project) {
+        return sum + (project['totalStaked'] as double? ?? 0.0);
+      });
+
+      final highestApr = allProjects.fold<double>(0.0, (maxApr, project) {
+        final aprString = project['estimateApr'] as String? ?? '0%';
+        final apr = double.tryParse(aprString.replaceAll('%', '')) ?? 0.0;
+        return apr > maxApr ? apr : maxApr;
+      });
+
+      return {
+        'totalProjects': allProjects.length,
+        'activePools': activePools,
+        'endedPools': endedPools,
+        'totalUsers': totalUsers,
+        'totalStaked': totalStaked,
+        'highestApr': highestApr,
+        'averageApr': allProjects.isNotEmpty
+            ? allProjects.fold<double>(0.0, (sum, project) {
+          final aprString = project['estimateApr'] as String? ?? '0%';
+          return sum + (double.tryParse(aprString.replaceAll('%', '')) ?? 0.0);
+        }) / allProjects.length
+            : 0.0,
+      };
+    } catch (e) {
+      throw NetworkException('Ошибка получения статистики: $e');
     }
   }
 
